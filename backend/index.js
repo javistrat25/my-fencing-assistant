@@ -15,7 +15,21 @@ const TOKENS_FILE = './tokens.json';
 let ghlAccessToken = null;
 let ghlRefreshToken = null;
 
-// Load tokens from file on server start
+// Add CORS headers
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+  if (req.method === 'OPTIONS') {
+    res.sendStatus(200);
+  } else {
+    next();
+  }
+});
+
+app.use(express.json());
+
+// Load tokens from file on server start (only if file exists)
 if (fs.existsSync(TOKENS_FILE)) {
   try {
     const tokens = JSON.parse(fs.readFileSync(TOKENS_FILE, 'utf-8'));
@@ -27,17 +41,30 @@ if (fs.existsSync(TOKENS_FILE)) {
   }
 }
 
-app.use(express.json());
-
 app.use('/api/leads', leadsRouter);
 app.use('/api/tasks', tasksRouter);
 
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+  res.json({ 
+    status: 'ok', 
+    message: 'Fencing Executive Assistant Backend is running.',
+    hasToken: !!ghlAccessToken 
+  });
+});
+
 // 1. Start OAuth flow: /auth
 app.get('/auth', (req, res) => {
+  if (!process.env.GHL_CLIENT_ID) {
+    return res.status(500).json({ error: 'GHL_CLIENT_ID not configured' });
+  }
+  
   const params = new URLSearchParams({
     response_type: 'code',
     client_id: process.env.GHL_CLIENT_ID,
-    redirect_uri: 'http://localhost:4000/oauth/callback',
+    redirect_uri: process.env.VERCEL_URL ? 
+      `https://${process.env.VERCEL_URL}/oauth/callback` : 
+      'http://localhost:4000/oauth/callback',
     scope: [
       'calendars.write',
       'calendars/events.write',
@@ -61,13 +88,20 @@ app.get('/oauth/callback', async (req, res) => {
   if (!code) {
     return res.status(400).send('No code provided');
   }
+  
+  if (!process.env.GHL_CLIENT_ID || !process.env.GHL_CLIENT_SECRET) {
+    return res.status(500).json({ error: 'GHL credentials not configured' });
+  }
+  
   try {
     const tokenResponse = await axios.post(
       'https://services.leadconnectorhq.com/oauth/token',
       qs.stringify({
         grant_type: 'authorization_code',
         code: code,
-        redirect_uri: 'http://localhost:4000/oauth/callback',
+        redirect_uri: process.env.VERCEL_URL ? 
+          `https://${process.env.VERCEL_URL}/oauth/callback` : 
+          'http://localhost:4000/oauth/callback',
         client_id: process.env.GHL_CLIENT_ID,
         client_secret: process.env.GHL_CLIENT_SECRET
       }),
@@ -80,7 +114,12 @@ app.get('/oauth/callback', async (req, res) => {
     const { access_token, refresh_token, expires_in } = tokenResponse.data;
     ghlAccessToken = access_token;
     ghlRefreshToken = refresh_token;
-    fs.writeFileSync(TOKENS_FILE, JSON.stringify({ access_token, refresh_token }, null, 2));
+    
+    // Only save to file if we're in development
+    if (!process.env.VERCEL_URL && fs.existsSync('./')) {
+      fs.writeFileSync(TOKENS_FILE, JSON.stringify({ access_token, refresh_token }, null, 2));
+    }
+    
     res.send('Authentication successful! You can now use the API endpoints.');
   } catch (error) {
     console.error('Error exchanging code for token:', error.response?.data || error.message);
@@ -90,17 +129,33 @@ app.get('/oauth/callback', async (req, res) => {
 
 async function refreshAccessToken() {
   if (!ghlRefreshToken) throw new Error('No refresh token available');
+  if (!process.env.GHL_CLIENT_ID || !process.env.GHL_CLIENT_SECRET) {
+    throw new Error('GHL credentials not configured');
+  }
+  
   try {
-    const response = await axios.post('https://services.leadconnectorhq.com/oauth/token', {
-      grant_type: 'refresh_token',
-      refresh_token: ghlRefreshToken,
-      client_id: process.env.GHL_CLIENT_ID,
-      client_secret: process.env.GHL_CLIENT_SECRET
-    });
+    const response = await axios.post('https://services.leadconnectorhq.com/oauth/token',
+      qs.stringify({
+        grant_type: 'refresh_token',
+        refresh_token: ghlRefreshToken,
+        client_id: process.env.GHL_CLIENT_ID,
+        client_secret: process.env.GHL_CLIENT_SECRET
+      }),
+      {
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded'
+        }
+      }
+    );
     const { access_token, refresh_token } = response.data;
     ghlAccessToken = access_token;
     ghlRefreshToken = refresh_token;
-    fs.writeFileSync(TOKENS_FILE, JSON.stringify({ access_token, refresh_token }, null, 2));
+    
+    // Only save to file if we're in development
+    if (!process.env.VERCEL_URL && fs.existsSync('./')) {
+      fs.writeFileSync(TOKENS_FILE, JSON.stringify({ access_token, refresh_token }, null, 2));
+    }
+    
     console.log('Access token refreshed.');
     return access_token;
   } catch (err) {
