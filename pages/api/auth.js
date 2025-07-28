@@ -1,4 +1,6 @@
 export default function handler(req, res) {
+  console.log('Auth endpoint called');
+  
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -25,5 +27,6 @@ export default function handler(req, res) {
   });
 
   const authUrl = `https://marketplace.gohighlevel.com/oauth/chooselocation?${params.toString()}`;
+  console.log('Redirecting to:', authUrl);
   res.redirect(authUrl);
 }
