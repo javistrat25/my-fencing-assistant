@@ -207,4 +207,5 @@ app.get('/', (req, res) => {
   res.send('Fencing Executive Assistant Backend is running.');
 });
 
+// Export for Vercel
 export default app; 
