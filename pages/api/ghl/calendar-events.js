@@ -65,7 +65,7 @@ export default async function handler(req, res) {
     
     // Try alternative endpoint
     try {
-      console.log('Trying alternative calendar endpoint...');
+      console.log('Trying alternative calendar endpoint with location ID...');
       const altResponse = await axios.get(`https://api.gohighlevel.com/v1/locations/${locationId}/appointments/`, {
         headers: {
           'Authorization': `Bearer ${accessToken}`,
@@ -84,10 +84,32 @@ export default async function handler(req, res) {
       });
     } catch (altError) {
       console.error('All calendar endpoints failed:', altError.response?.data || altError.message);
-      res.status(500).json({
-        error: 'Failed to fetch calendar events',
-        details: error.response?.data || error.message
-      });
+      
+      // Try without location ID as fallback
+      try {
+        console.log('Trying calendar endpoint without location ID...');
+        const noLocationResponse = await axios.get('https://rest.gohighlevel.com/v1/appointments/', {
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json'
+          },
+          params: {
+            limit: 10
+          }
+        });
+        
+        console.log('Calendar endpoint without location ID worked');
+        res.status(200).json({
+          success: true,
+          events: noLocationResponse.data.appointments || [],
+          total: noLocationResponse.data.total || 0
+        });
+      } catch (noLocationError) {
+        res.status(500).json({
+          error: 'Failed to fetch calendar events',
+          details: error.response?.data || error.message
+        });
+      }
     }
   }
 } 

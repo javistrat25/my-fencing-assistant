@@ -44,8 +44,8 @@ export default async function handler(req, res) {
   try {
     console.log('Fetching contacts with token and location ID');
     
-    // Try the correct GHL API endpoint
-    const response = await axios.get('https://rest.gohighlevel.com/v1/contacts/', {
+    // Try the correct GHL API endpoint with location ID
+    const response = await axios.get(`https://rest.gohighlevel.com/v1/locations/${locationId}/contacts/`, {
       headers: {
         'Authorization': `Bearer ${accessToken}`,
         'Content-Type': 'application/json'
@@ -66,8 +66,8 @@ export default async function handler(req, res) {
     
     // Try alternative endpoint if first one fails
     try {
-      console.log('Trying alternative endpoint...');
-      const altResponse = await axios.get('https://api.gohighlevel.com/v1/contacts/', {
+      console.log('Trying alternative endpoint with location ID...');
+      const altResponse = await axios.get(`https://api.gohighlevel.com/v1/locations/${locationId}/contacts/`, {
         headers: {
           'Authorization': `Bearer ${accessToken}`,
           'Content-Type': 'application/json'
@@ -88,8 +88,8 @@ export default async function handler(req, res) {
       
       // Try third endpoint
       try {
-        console.log('Trying third endpoint...');
-        const thirdResponse = await axios.get('https://services.leadconnectorhq.com/v1/contacts/', {
+        console.log('Trying third endpoint with location ID...');
+        const thirdResponse = await axios.get(`https://services.leadconnectorhq.com/v1/locations/${locationId}/contacts/`, {
           headers: {
             'Authorization': `Bearer ${accessToken}`,
             'Content-Type': 'application/json'
@@ -108,9 +108,9 @@ export default async function handler(req, res) {
       } catch (thirdError) {
         console.error('All endpoints failed:', thirdError.response?.data || thirdError.message);
         
-        // Try without location ID
+        // Try without location ID as fallback
         try {
-          console.log('Trying without location ID...');
+          console.log('Trying without location ID as fallback...');
           const noLocationResponse = await axios.get('https://rest.gohighlevel.com/v1/contacts/', {
             headers: {
               'Authorization': `Bearer ${accessToken}`,
