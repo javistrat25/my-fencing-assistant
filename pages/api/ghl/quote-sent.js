@@ -38,23 +38,49 @@ export default async function handler(req, res) {
   try {
     console.log('Fetching quote sent opportunities...');
     
-    // Try the services.leadconnectorhq.com endpoint first (matches GHL docs)
-    const response = await axios.get('https://services.leadconnectorhq.com/opportunities/search', {
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'Content-Type': 'application/json',
-        'Version': '2021-07-28'
-      },
-      params: {
-        location_id: 'hhgoXNHThJUYz4r3qS18',
-        limit: 100,
-        status: 'open'
-      }
-    });
-
-    console.log('Opportunities fetched successfully from services endpoint');
+    // Try without location_id first, then with it as fallback
+    let opportunities = [];
+    let endpointUsed = '';
     
-    let opportunities = response.data.opportunities || [];
+    try {
+      // Try without location_id first
+      const response = await axios.get('https://services.leadconnectorhq.com/opportunities/search', {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+          'Version': '2021-07-28'
+        },
+        params: {
+          limit: 100,
+          status: 'open'
+        }
+      });
+      
+      opportunities = response.data.opportunities || [];
+      endpointUsed = 'services.leadconnectorhq.com/opportunities/search (no location_id)';
+      console.log('Success without location_id');
+      
+    } catch (error) {
+      console.log('Failed without location_id, trying with location_id...');
+      
+      // Try with location_id as fallback
+      const response = await axios.get('https://services.leadconnectorhq.com/opportunities/search', {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+          'Version': '2021-07-28'
+        },
+        params: {
+          location_id: 'hhgoXNHThJUYz4r3qS18',
+          limit: 100,
+          status: 'open'
+        }
+      });
+      
+      opportunities = response.data.opportunities || [];
+      endpointUsed = 'services.leadconnectorhq.com/opportunities/search (with location_id)';
+      console.log('Success with location_id');
+    }
     
     // Debug: Log first few opportunities to see their structure
     console.log('Sample opportunities structure:');
@@ -110,7 +136,7 @@ export default async function handler(req, res) {
       total: quoteSentOpportunities.length,
       stage: 'Quote Sent',
       apiVersion: '2021-07-28',
-      endpoint: 'services.leadconnectorhq.com/opportunities/search',
+      endpoint: endpointUsed,
       allOpportunities: opportunities.length,
       // Debug: Return first few opportunities for inspection
       debug: {
@@ -123,7 +149,7 @@ export default async function handler(req, res) {
           allFields: Object.keys(opp)
         })),
         totalOpportunities: opportunities.length,
-        endpointUsed: 'services.leadconnectorhq.com/opportunities/search'
+        endpointUsed: endpointUsed
       }
     });
   } catch (error) {
