@@ -40,28 +40,49 @@ export default async function handler(req, res) {
   try {
     console.log('Fetching quote pending opportunities...');
     
-    // Now get opportunities using the correct location ID
-    const opportunitiesResponse = await axios.get('https://services.leadconnectorhq.com/opportunities/search', {
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'Content-Type': 'application/json',
-        'Version': '2021-07-28'
-      },
-      params: {
-        location_id: locationId,
-        limit: 100 // Fixed: GHL API limit is 100, not 500
-        // Removed status filter to get all opportunities
+    // Fetch ALL opportunities using pagination
+    let allOpportunities = [];
+    let offset = 0;
+    const limit = 100;
+    
+    while (true) {
+      const opportunitiesResponse = await axios.get('https://services.leadconnectorhq.com/opportunities/search', {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+          'Version': '2021-07-28'
+        },
+        params: {
+          location_id: locationId,
+          limit: limit,
+          offset: offset
+        }
+      });
+      
+      const opportunities = opportunitiesResponse.data.opportunities || [];
+      allOpportunities = allOpportunities.concat(opportunities);
+      
+      console.log(`Fetched ${opportunities.length} opportunities (offset: ${offset}, total so far: ${allOpportunities.length})`);
+      
+      // If we got fewer than the limit, we've reached the end
+      if (opportunities.length < limit) {
+        break;
       }
-    });
+      
+      offset += limit;
+      
+      // Safety check to prevent infinite loops
+      if (offset > 1000) {
+        console.log('Reached safety limit of 1000 opportunities');
+        break;
+      }
+    }
     
-    console.log('Opportunities fetched successfully');
-    
-    let opportunities = opportunitiesResponse.data.opportunities || [];
-    console.log(`Found ${opportunities.length} total opportunities`);
+    console.log(`Total opportunities fetched: ${allOpportunities.length}`);
     
     // Debug: Log first few opportunities to see their structure
     console.log('Sample opportunities structure:');
-    opportunities.slice(0, 3).forEach((opp, index) => {
+    allOpportunities.slice(0, 3).forEach((opp, index) => {
       console.log(`Opportunity ${index + 1}:`, {
         id: opp.id,
         name: opp.name,
@@ -85,7 +106,7 @@ export default async function handler(req, res) {
     console.log('Available stage IDs:', Object.keys(stageIdToName));
     
     // Get unique stage IDs from opportunities
-    const opportunityStageIds = [...new Set(opportunities.map(opp => opp.pipelineStageId))];
+    const opportunityStageIds = [...new Set(allOpportunities.map(opp => opp.pipelineStageId))];
     console.log('Opportunity stage IDs:', opportunityStageIds);
     
     // Check which stage IDs we have mappings for
@@ -95,7 +116,7 @@ export default async function handler(req, res) {
     console.log('Unmapped stage IDs:', unmappedStageIds);
     
     // Filter for "Quote Pending" stage using the mapping
-    let quotePendingOpportunities = opportunities.filter(opportunity => {
+    let quotePendingOpportunities = allOpportunities.filter(opportunity => {
       const stageId = opportunity.pipelineStageId;
       const stageName = stageIdToName[stageId] || '';
       const isQuotePending = stageName.toLowerCase() === 'quote pending';
@@ -111,7 +132,7 @@ export default async function handler(req, res) {
       
       // Try to find opportunities that might be in "Quote Pending" stage by looking at other fields
       // This is a fallback in case the pipeline stages API doesn't work
-      quotePendingOpportunities = opportunities.filter(opportunity => {
+      quotePendingOpportunities = allOpportunities.filter(opportunity => {
         // Look for any field that might contain stage information
         const opportunityString = JSON.stringify(opportunity).toLowerCase();
         const hasQuotePending = opportunityString.includes('quote pending') || 
@@ -124,13 +145,13 @@ export default async function handler(req, res) {
       });
     }
     
-    console.log('Found', quotePendingOpportunities.length, 'quote pending opportunities out of', opportunities.length, 'total');
+    console.log('Found', quotePendingOpportunities.length, 'quote pending opportunities out of', allOpportunities.length, 'total');
 
     res.status(200).json({
       success: true,
       opportunities: quotePendingOpportunities,
-      rawOpportunities: opportunities, // TEMP: Return raw data for debugging
-      totalOpportunities: opportunities.length,
+      rawOpportunities: allOpportunities, // TEMP: Return raw data for debugging
+      totalOpportunities: allOpportunities.length,
       filteredCount: quotePendingOpportunities.length,
       pipelineStages: [], // TEMP: Return pipeline stages for debugging
       stageIdToName: stageIdToName // TEMP: Return mapping for debugging
