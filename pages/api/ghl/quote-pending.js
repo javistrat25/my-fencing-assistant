@@ -109,30 +109,14 @@ export default async function handler(req, res) {
       return stageName === 'quote pending';
     });
     
-    console.log(`Found ${quotePendingOpportunities.length} quote pending opportunities out of ${opportunities.length} total`);
+    console.log('Found', quotePendingOpportunities.length, 'quote pending opportunities out of', opportunities.length, 'total');
 
     res.status(200).json({
       success: true,
       opportunities: quotePendingOpportunities,
-      total: quotePendingOpportunities.length,
-      stage: 'Quoted–Pending',
-      apiVersion: '2021-07-28',
-      endpoint: 'services.leadconnectorhq.com/opportunities/search',
-      allOpportunities: opportunities.length,
-      locationId: locationId,
-      // Debug: Return first few opportunities for inspection
-      debug: {
-        sampleOpportunities: opportunities.slice(0, 3).map(opp => ({
-          id: opp.id,
-          name: opp.name,
-          status: opp.status,
-          pipelineStageId: opp.pipelineStageId,
-          pipelineId: opp.pipelineId,
-          contact: opp.contact?.name || 'No contact'
-        })),
-        totalOpportunities: opportunities.length,
-        endpointUsed: 'services.leadconnectorhq.com/opportunities/search'
-      }
+      rawOpportunities: opportunities, // TEMP: Return raw data for debugging
+      totalOpportunities: opportunities.length,
+      filteredCount: quotePendingOpportunities.length
     });
   } catch (error) {
     console.error('Error fetching quote pending opportunities:', error.response?.data || error.message);
