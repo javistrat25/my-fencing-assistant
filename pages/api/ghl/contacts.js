@@ -40,10 +40,12 @@ export default async function handler(req, res) {
   try {
     console.log('Fetching contacts with token');
     
+    // Try the correct GHL API endpoint
     const response = await axios.get('https://rest.gohighlevel.com/v1/contacts/', {
       headers: {
         'Authorization': `Bearer ${accessToken}`,
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Version': '2021-07-28'
       },
       params: {
         limit: 10 // Limit to first 10 contacts for testing
@@ -58,9 +60,32 @@ export default async function handler(req, res) {
     });
   } catch (error) {
     console.error('Error fetching contacts:', error.response?.data || error.message);
-    res.status(500).json({ 
-      error: 'Failed to fetch contacts',
-      details: error.response?.data || error.message
-    });
+    
+    // Try alternative endpoint if first one fails
+    try {
+      console.log('Trying alternative endpoint...');
+      const altResponse = await axios.get('https://api.gohighlevel.com/v1/contacts/', {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
+        },
+        params: {
+          limit: 10
+        }
+      });
+      
+      console.log('Alternative endpoint worked');
+      res.status(200).json({
+        success: true,
+        contacts: altResponse.data.contacts || [],
+        total: altResponse.data.total || 0
+      });
+    } catch (altError) {
+      console.error('Alternative endpoint also failed:', altError.response?.data || altError.message);
+      res.status(500).json({ 
+        error: 'Failed to fetch contacts',
+        details: error.response?.data || error.message
+      });
+    }
   }
 } 
