@@ -49,8 +49,8 @@ export default async function handler(req, res) {
       },
       params: {
         location_id: locationId,
-        limit: 100,
-        status: 'open'
+        limit: 500, // Increased limit to get more opportunities
+        // Removed status filter to get all opportunities
       }
     });
     
