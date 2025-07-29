@@ -40,13 +40,18 @@ export default async function handler(req, res) {
   try {
     console.log('Fetching contacts with token');
     
-    // Try the correct GHL API endpoint
+    // Try different authorization header formats
+    const headers = {
+      'Content-Type': 'application/json',
+      'Version': '2021-07-28'
+    };
+
+    // Try Bearer token first
+    headers['Authorization'] = `Bearer ${accessToken}`;
+    
+    console.log('Trying with Bearer token...');
     const response = await axios.get('https://rest.gohighlevel.com/v1/contacts/', {
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'Content-Type': 'application/json',
-        'Version': '2021-07-28'
-      },
+      headers,
       params: {
         limit: 10 // Limit to first 10 contacts for testing
       }
@@ -104,10 +109,33 @@ export default async function handler(req, res) {
         });
       } catch (thirdError) {
         console.error('All endpoints failed:', thirdError.response?.data || thirdError.message);
-        res.status(500).json({ 
-          error: 'Failed to fetch contacts',
-          details: error.response?.data || error.message
-        });
+        
+        // Try without Bearer prefix
+        try {
+          console.log('Trying without Bearer prefix...');
+          const noBearerResponse = await axios.get('https://rest.gohighlevel.com/v1/contacts/', {
+            headers: {
+              'Authorization': accessToken,
+              'Content-Type': 'application/json'
+            },
+            params: {
+              limit: 10
+            }
+          });
+          
+          console.log('No Bearer prefix worked');
+          res.status(200).json({
+            success: true,
+            contacts: noBearerResponse.data.contacts || [],
+            total: noBearerResponse.data.total || 0
+          });
+        } catch (noBearerError) {
+          console.error('All authorization methods failed');
+          res.status(500).json({ 
+            error: 'Failed to fetch contacts',
+            details: error.response?.data || error.message
+          });
+        }
       }
     }
   }
