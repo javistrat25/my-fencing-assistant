@@ -15,7 +15,7 @@ function parseCookies(cookieHeader) {
 }
 
 export default async function handler(req, res) {
-  console.log('Simple test endpoint called');
+  console.log('Test simple endpoint called');
   
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -23,12 +23,13 @@ export default async function handler(req, res) {
 
   // Parse cookies to get access token
   const cookies = parseCookies(req.headers.cookie);
-  console.log('Cookies received:', Object.keys(cookies));
   const accessToken = cookies.ghl_access_token;
-  console.log('Access token found:', !!accessToken);
-  
+  const locationId = 'hhgoXNHThJUYz4r3qS18';
+
+  console.log('Cookies found:', Object.keys(cookies));
+  console.log('Access token exists:', !!accessToken);
+
   if (!accessToken) {
-    console.log('No access token available');
     return res.status(401).json({
       error: 'No access token available. Please authenticate via OAuth first.',
       message: 'Visit /api/auth to start the OAuth flow'
@@ -36,39 +37,58 @@ export default async function handler(req, res) {
   }
 
   try {
-    console.log('Testing basic GHL API access...');
+    console.log('Testing simple API call...');
     
-    // Try a simple contacts endpoint first
-    const contactsResponse = await axios.get('https://services.leadconnectorhq.com/contacts/', {
+    // Test the basic API call that should work
+    const opportunitiesResponse = await axios.get('https://services.leadconnectorhq.com/opportunities/search', {
       headers: {
         'Authorization': `Bearer ${accessToken}`,
         'Content-Type': 'application/json',
         'Version': '2021-07-28'
       },
       params: {
-        location_id: 'hhgoXNHThJUYz4r3qS18',
-        limit: 5
+        location_id: locationId,
+        limit: 100
       }
     });
     
-    console.log('Contacts endpoint worked');
+    console.log('API call successful');
+    const opportunities = opportunitiesResponse.data.opportunities || [];
+    console.log(`Found ${opportunities.length} opportunities`);
     
+    // Test the hardcoded mapping
+    const hardcodedMapping = {
+      "0fa7f486-3f87-4ba2-8daa-fe83d23ef7e5": "Quote Pending",
+      "caae0892-7efb-4f5e-bcc6-07123c1cc463": "Quote Sent"
+    };
+    
+    const quotePendingCount = opportunities.filter(opp => 
+      opp.pipelineStageId === "0fa7f486-3f87-4ba2-8daa-fe83d23ef7e5"
+    ).length;
+    
+    const quoteSentCount = opportunities.filter(opp => 
+      opp.pipelineStageId === "caae0892-7efb-4f5e-bcc6-07123c1cc463"
+    ).length;
+
     res.status(200).json({
       success: true,
-      message: 'GHL API access is working',
-      contactsCount: contactsResponse.data.contacts?.length || 0,
-      sampleContact: contactsResponse.data.contacts?.[0] || null,
-      accessTokenLength: accessToken.length,
-      endpoint: 'services.leadconnectorhq.com/contacts/'
+      totalOpportunities: opportunities.length,
+      quotePendingCount: quotePendingCount,
+      quoteSentCount: quoteSentCount,
+      sampleOpportunities: opportunities.slice(0, 3).map(opp => ({
+        id: opp.id,
+        name: opp.name,
+        pipelineStageId: opp.pipelineStageId
+      }))
     });
     
   } catch (error) {
-    console.error('Error testing GHL API:', error.response?.data || error.message);
+    console.error('Error testing simple API call:', error.response?.data || error.message);
     
     res.status(500).json({
-      error: 'Failed to test GHL API',
+      error: 'Failed to test simple API call',
       details: error.response?.data || error.message,
-      message: 'Check if OAuth token is valid'
+      status: error.response?.status
     });
   }
 }
