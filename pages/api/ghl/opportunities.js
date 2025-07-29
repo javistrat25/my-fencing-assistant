@@ -44,8 +44,8 @@ export default async function handler(req, res) {
   try {
     console.log('Fetching opportunities with server-side filtering');
     
-    // Use GHL API best practices with query parameters
-    const response = await axios.get(`https://rest.gohighlevel.com/v1/locations/${locationId}/opportunities/`, {
+    // Try the correct GHL opportunities endpoint
+    const response = await axios.get('https://rest.gohighlevel.com/v1/opportunities/', {
       headers: {
         'Authorization': `Bearer ${accessToken}`,
         'Content-Type': 'application/json'
@@ -71,7 +71,7 @@ export default async function handler(req, res) {
       
       for (const stage of alternativeStages) {
         try {
-          const altResponse = await axios.get(`https://rest.gohighlevel.com/v1/locations/${locationId}/opportunities/`, {
+          const altResponse = await axios.get('https://rest.gohighlevel.com/v1/opportunities/', {
             headers: {
               'Authorization': `Bearer ${accessToken}`,
               'Content-Type': 'application/json'
@@ -98,7 +98,7 @@ export default async function handler(req, res) {
     if (opportunities.length === 0) {
       console.log('No results with server-side filtering, fetching all opportunities...');
       
-      const allResponse = await axios.get(`https://rest.gohighlevel.com/v1/locations/${locationId}/opportunities/`, {
+      const allResponse = await axios.get('https://rest.gohighlevel.com/v1/opportunities/', {
         headers: {
           'Authorization': `Bearer ${accessToken}`,
           'Content-Type': 'application/json'
@@ -133,8 +133,7 @@ export default async function handler(req, res) {
       opportunities: opportunities,
       total: opportunities.length,
       stage: 'quote sent',
-      apiVersion: 'v1',
-      locationId: locationId
+      apiVersion: 'v1'
     });
   } catch (error) {
     console.error('Error fetching opportunities:', error.response?.data || error.message);
@@ -142,7 +141,7 @@ export default async function handler(req, res) {
     // Try alternative endpoint
     try {
       console.log('Trying alternative opportunities endpoint...');
-      const altResponse = await axios.get(`https://api.gohighlevel.com/v1/locations/${locationId}/opportunities/`, {
+      const altResponse = await axios.get('https://api.gohighlevel.com/v1/opportunities/', {
         headers: {
           'Authorization': `Bearer ${accessToken}`,
           'Content-Type': 'application/json'
@@ -162,8 +161,7 @@ export default async function handler(req, res) {
         opportunities: opportunities,
         total: opportunities.length,
         stage: 'quote sent',
-        apiVersion: 'v1',
-        locationId: locationId
+        apiVersion: 'v1'
       });
     } catch (altError) {
       console.error('All opportunities endpoints failed:', altError.response?.data || altError.message);
