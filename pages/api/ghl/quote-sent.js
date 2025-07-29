@@ -54,20 +54,22 @@ export default async function handler(req, res) {
     
     let opportunities = response.data.opportunities || [];
     
-    // Filter for quote sent opportunities specifically
+    // Filter for "Quote Sent" stage specifically (matching GHL pipeline)
     const quoteSentOpportunities = opportunities.filter(opportunity => {
       const name = opportunity.name?.toLowerCase() || '';
       const status = opportunity.status?.toLowerCase() || '';
       const pipelineStageId = opportunity.pipelineStageId || '';
+      const pipelineStageName = opportunity.pipelineStage?.name?.toLowerCase() || '';
       
-      // Look for quote sent indicators
+      // Look for exact "Quote Sent" stage match
       return name.includes('quote sent') || 
-             name.includes('quote sent') ||
              status.includes('quote sent') ||
              pipelineStageId.includes('quote sent') ||
-             // Add more specific filters for quote sent stage
-             name.includes('sent') ||
-             status.includes('sent');
+             pipelineStageName.includes('quote sent') ||
+             // Also check for variations
+             name.includes('quote') && name.includes('sent') ||
+             status.includes('quote') && status.includes('sent') ||
+             pipelineStageName === 'quote sent';
     });
     
     console.log(`Found ${quoteSentOpportunities.length} quote sent opportunities out of ${opportunities.length} total`);
@@ -76,9 +78,10 @@ export default async function handler(req, res) {
       success: true,
       opportunities: quoteSentOpportunities,
       total: quoteSentOpportunities.length,
-      stage: 'quote sent',
+      stage: 'Quote Sent',
       apiVersion: 'v1',
-      endpoint: 'rest.gohighlevel.com/v1/opportunities/'
+      endpoint: 'rest.gohighlevel.com/v1/opportunities/',
+      allOpportunities: opportunities.length
     });
   } catch (error) {
     console.error('Error fetching quote sent opportunities:', error.response?.data || error.message);

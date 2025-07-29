@@ -281,7 +281,7 @@ export default function Home() {
               marginBottom: '8px',
               fontWeight: '500'
             }}>
-              Active Quotes (Quote Sent)
+              Quote Sent Opportunities
             </div>
             <div style={{
               fontSize: '1.5rem',
@@ -314,7 +314,7 @@ export default function Home() {
                       borderRadius: '4px',
                       marginLeft: '8px'
                     }}
-                    title="Refresh Active Quotes"
+                    title="Refresh Quote Sent Opportunities"
                   >
                     🔄
                   </button>

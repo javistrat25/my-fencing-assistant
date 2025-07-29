@@ -54,22 +54,22 @@ export default async function handler(req, res) {
     
     let opportunities = response.data.opportunities || [];
     
-    // Filter for quote pending opportunities specifically
+    // Filter for "Quote Pending" stage specifically (matching GHL pipeline)
     const quotePendingOpportunities = opportunities.filter(opportunity => {
       const name = opportunity.name?.toLowerCase() || '';
       const status = opportunity.status?.toLowerCase() || '';
       const pipelineStageId = opportunity.pipelineStageId || '';
+      const pipelineStageName = opportunity.pipelineStage?.name?.toLowerCase() || '';
       
-      // Look for quote pending indicators
+      // Look for exact "Quote Pending" stage match
       return name.includes('quote pending') || 
-             name.includes('pending') ||
              status.includes('quote pending') ||
-             status.includes('pending') ||
              pipelineStageId.includes('quote pending') ||
-             pipelineStageId.includes('pending') ||
-             // Add more specific filters for quote pending stage
-             name.includes('quote') && !name.includes('sent') ||
-             status.includes('quote') && !status.includes('sent');
+             pipelineStageName.includes('quote pending') ||
+             // Also check for variations
+             name.includes('quote') && name.includes('pending') ||
+             status.includes('quote') && status.includes('pending') ||
+             pipelineStageName === 'quote pending';
     });
     
     console.log(`Found ${quotePendingOpportunities.length} quote pending opportunities out of ${opportunities.length} total`);
@@ -78,9 +78,10 @@ export default async function handler(req, res) {
       success: true,
       opportunities: quotePendingOpportunities,
       total: quotePendingOpportunities.length,
-      stage: 'quote pending',
+      stage: 'Quote Pending',
       apiVersion: 'v1',
-      endpoint: 'rest.gohighlevel.com/v1/opportunities/'
+      endpoint: 'rest.gohighlevel.com/v1/opportunities/',
+      allOpportunities: opportunities.length
     });
   } catch (error) {
     console.error('Error fetching quote pending opportunities:', error.response?.data || error.message);
