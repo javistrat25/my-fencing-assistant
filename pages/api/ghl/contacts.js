@@ -26,6 +26,8 @@ export default async function handler(req, res) {
   console.log('Cookies received:', Object.keys(cookies));
   const accessToken = cookies.ghl_access_token;
   console.log('Access token found:', !!accessToken);
+  console.log('Access token length:', accessToken ? accessToken.length : 0);
+  console.log('Access token preview:', accessToken ? accessToken.substring(0, 20) + '...' : 'none');
   
   if (!accessToken) {
     console.log('No access token available');

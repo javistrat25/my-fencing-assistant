@@ -18,6 +18,7 @@ export default async function handler(req, res) {
   }
 
   try {
+    console.log('Exchanging code for token...');
     const tokenResponse = await axios.post(
       'https://services.leadconnectorhq.com/oauth/token',
       qs.stringify({
@@ -36,6 +37,9 @@ export default async function handler(req, res) {
 
     const { access_token, refresh_token, expires_in } = tokenResponse.data;
     console.log('Token obtained successfully');
+    console.log('Access token length:', access_token ? access_token.length : 0);
+    console.log('Token type:', tokenResponse.data.token_type);
+    console.log('Expires in:', expires_in);
 
     // Store tokens in cookies with simplified settings
     res.setHeader('Set-Cookie', [
