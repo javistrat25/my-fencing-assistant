@@ -72,7 +72,16 @@ export default async function handler(req, res) {
       'Max-Age=2592000'
     ].join('; ');
 
-    res.setHeader('Set-Cookie', [cookieOptions, refreshCookieOptions]);
+    // Also store the location ID that was selected during OAuth
+    const locationCookieOptions = [
+      `ghl_location_id=${req.query.locationId || 'hhgoXNHThJUYz4r3qS18'}`,
+      'Path=/',
+      'HttpOnly',
+      'SameSite=Lax',
+      'Max-Age=2592000'
+    ].join('; ');
+
+    res.setHeader('Set-Cookie', [cookieOptions, refreshCookieOptions, locationCookieOptions]);
 
     // Redirect back to the main app with success
     res.redirect(302, `/?auth=success&message=Authentication successful! You can now use the API endpoints.`);
