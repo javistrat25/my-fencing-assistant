@@ -34,66 +34,116 @@ export default async function handler(req, res) {
   }
 
   try {
-    console.log('Testing pipeline stages API...');
+    console.log('Testing different pipeline endpoints...');
     
-    // Test the pipelines endpoint
-    const pipelinesResponse = await axios.get('https://services.leadconnectorhq.com/pipelines/', {
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'Content-Type': 'application/json',
-        'Version': '2021-07-28'
-      },
-      params: {
-        location_id: locationId
-      }
-    });
+    const results = {};
     
-    console.log('Pipelines API response:', JSON.stringify(pipelinesResponse.data, null, 2));
-    
-    // Extract all stages from all pipelines
-    const pipelineStages = [];
-    if (pipelinesResponse.data.pipelines) {
-      pipelinesResponse.data.pipelines.forEach(pipeline => {
-        console.log(`Pipeline: ${pipeline.name} (${pipeline.id})`);
-        if (pipeline.stages) {
-          pipeline.stages.forEach(stage => {
-            console.log(`  Stage: ${stage.name} (${stage.id})`);
-            pipelineStages.push({
-              id: stage.id,
-              name: stage.name,
-              pipelineId: pipeline.id,
-              pipelineName: pipeline.name
-            });
-          });
+    // Test 1: services.leadconnectorhq.com/pipelines/ with location_id
+    try {
+      console.log('Testing services.leadconnectorhq.com/pipelines/ with location_id...');
+      const response1 = await axios.get('https://services.leadconnectorhq.com/pipelines/', {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+          'Version': '2021-07-28'
+        },
+        params: {
+          location_id: locationId
         }
       });
+      results.test1 = {
+        success: true,
+        status: response1.status,
+        data: response1.data
+      };
+    } catch (error) {
+      results.test1 = {
+        success: false,
+        status: error.response?.status,
+        error: error.response?.data || error.message
+      };
     }
     
-    // Create stage ID to name mapping
-    const stageIdToName = {};
-    pipelineStages.forEach(stage => {
-      stageIdToName[stage.id] = stage.name;
-    });
+    // Test 2: services.leadconnectorhq.com/pipelines/ without location_id
+    try {
+      console.log('Testing services.leadconnectorhq.com/pipelines/ without location_id...');
+      const response2 = await axios.get('https://services.leadconnectorhq.com/pipelines/', {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+          'Version': '2021-07-28'
+        }
+      });
+      results.test2 = {
+        success: true,
+        status: response2.status,
+        data: response2.data
+      };
+    } catch (error) {
+      results.test2 = {
+        success: false,
+        status: error.response?.status,
+        error: error.response?.data || error.message
+      };
+    }
     
-    // Test the specific stage IDs we know about
-    const knownStageIds = [
-      "0fa7f486-3f87-4ba2-8daa-fe83d23ef7e5", // From the quote pending opportunity
-      "caae0892-7efb-4f5e-bcc6-07123c1cc463"  // From the quote sent opportunity
-    ];
+    // Test 3: rest.gohighlevel.com/v1/pipelines/
+    try {
+      console.log('Testing rest.gohighlevel.com/v1/pipelines/...');
+      const response3 = await axios.get('https://rest.gohighlevel.com/v1/pipelines/', {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      results.test3 = {
+        success: true,
+        status: response3.status,
+        data: response3.data
+      };
+    } catch (error) {
+      results.test3 = {
+        success: false,
+        status: error.response?.status,
+        error: error.response?.data || error.message
+      };
+    }
     
-    const stageMappings = {};
-    knownStageIds.forEach(stageId => {
-      stageMappings[stageId] = stageIdToName[stageId] || 'NOT FOUND';
-    });
+    // Test 4: services.leadconnectorhq.com/pipelines with different version
+    try {
+      console.log('Testing services.leadconnectorhq.com/pipelines with different version...');
+      const response4 = await axios.get('https://services.leadconnectorhq.com/pipelines', {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+          'Version': '2021-07-28'
+        },
+        params: {
+          location_id: locationId
+        }
+      });
+      results.test4 = {
+        success: true,
+        status: response4.status,
+        data: response4.data
+      };
+    } catch (error) {
+      results.test4 = {
+        success: false,
+        status: error.response?.status,
+        error: error.response?.data || error.message
+      };
+    }
 
     res.status(200).json({
       success: true,
-      pipelinesResponse: pipelinesResponse.data,
-      pipelineStages: pipelineStages,
-      stageIdToName: stageIdToName,
-      knownStageMappings: stageMappings,
-      totalPipelines: pipelinesResponse.data.pipelines?.length || 0,
-      totalStages: pipelineStages.length
+      results: results,
+      summary: {
+        test1_success: results.test1?.success || false,
+        test2_success: results.test2?.success || false,
+        test3_success: results.test3?.success || false,
+        test4_success: results.test4?.success || false
+      }
     });
     
   } catch (error) {
