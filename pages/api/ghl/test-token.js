@@ -25,41 +25,53 @@ export default async function handler(req, res) {
   const cookies = parseCookies(req.headers.cookie);
   console.log('Cookies received:', Object.keys(cookies));
   const accessToken = cookies.ghl_access_token;
+  console.log('Access token found:', !!accessToken);
+  console.log('Access token length:', accessToken ? accessToken.length : 0);
+  console.log('Access token preview:', accessToken ? accessToken.substring(0, 20) + '...' : 'none');
   
   if (!accessToken) {
+    console.log('No access token available');
     return res.status(401).json({
       error: 'No access token available. Please authenticate via OAuth first.',
       message: 'Visit /api/auth to start the OAuth flow'
     });
   }
 
-  // Test the token with a simple GHL API call
   try {
-    console.log('Testing token with GHL API...');
+    console.log('Testing token with a simple GHL endpoint...');
     
-    const response = await axios.get('https://rest.gohighlevel.com/v1/contacts/', {
+    // Try a simple endpoint to test the token
+    const response = await axios.get('https://services.leadconnectorhq.com/contacts/', {
       headers: {
         'Authorization': `Bearer ${accessToken}`,
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Version': '2021-07-28'
+      },
+      params: {
+        limit: 1
       }
     });
-
+    
+    console.log('Token test successful');
+    
     res.status(200).json({
       success: true,
-      message: 'Token is valid for API calls',
-      data: response.data
+      message: 'Token is valid',
+      accessTokenLength: accessToken.length,
+      accessTokenPreview: accessToken.substring(0, 20) + '...',
+      testResult: 'GHL API access working',
+      contactsCount: response.data.contacts?.length || 0
     });
+    
   } catch (error) {
-    console.error('Token test failed:', error.response?.data || error.message);
+    console.error('Error testing token:', error.response?.data || error.message);
     
     res.status(500).json({
       error: 'Token test failed',
       details: error.response?.data || error.message,
-      tokenInfo: {
-        length: accessToken.length,
-        preview: accessToken.substring(0, 20) + '...',
-        isBearer: accessToken.startsWith('Bearer')
-      }
+      accessTokenLength: accessToken.length,
+      accessTokenPreview: accessToken.substring(0, 20) + '...',
+      message: 'Token might be expired or invalid'
     });
   }
 }
