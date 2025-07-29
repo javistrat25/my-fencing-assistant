@@ -9,10 +9,12 @@ export default function Home() {
   const [showQuotesPending, setShowQuotesPending] = useState(false);
   const [quotesPendingData, setQuotesPendingData] = useState([]);
   const [quotesPendingLoading, setQuotesPendingLoading] = useState(false);
+  const [quotesPendingCount, setQuotesPendingCount] = useState(0);
 
   // Fetch active quotes count on component mount
   useEffect(() => {
     fetchActiveQuotes();
+    fetchQuotesPendingCount();
   }, []);
 
   const fetchActiveQuotes = async () => {
@@ -35,6 +37,24 @@ export default function Home() {
     setMetricsLoading(false);
   };
 
+  const fetchQuotesPendingCount = async () => {
+    try {
+      const response = await fetch('/api/ghl/opportunities');
+      const data = await response.json();
+      
+      if (data.success && data.opportunities) {
+        // Count opportunities that are in quote pending stage
+        const pendingCount = data.opportunities.length;
+        setQuotesPendingCount(pendingCount);
+      } else {
+        setQuotesPendingCount(0);
+      }
+    } catch (error) {
+      console.error('Error fetching quotes pending count:', error);
+      setQuotesPendingCount(0);
+    }
+  };
+
   const loadQuotesPending = async () => {
     setQuotesPendingLoading(true);
     setShowQuotesPending(true);
@@ -55,12 +75,15 @@ export default function Home() {
           };
         });
         setQuotesPendingData(pendingQuotes);
+        setQuotesPendingCount(pendingQuotes.length);
       } else {
         setQuotesPendingData([]);
+        setQuotesPendingCount(0);
       }
     } catch (error) {
       console.error('Error fetching quotes pending:', error);
       setQuotesPendingData([]);
+      setQuotesPendingCount(0);
     }
     setQuotesPendingLoading(false);
   };
@@ -276,7 +299,10 @@ export default function Home() {
             fontSize: '1.1rem',
             fontWeight: '600',
             boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-            transition: 'all 0.2s ease'
+            transition: 'all 0.2s ease',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px'
           }}
           onMouseEnter={(e) => {
             if (!quotesPendingLoading) {
@@ -289,7 +315,20 @@ export default function Home() {
             e.target.style.boxShadow = '0 4px 6px rgba(0,0,0,0.1)';
           }}
         >
-          {quotesPendingLoading ? 'Loading...' : 'Quotes Pending'}
+          <span>
+            {quotesPendingLoading ? 'Loading...' : `Quotes Pending: ${quotesPendingCount}`}
+          </span>
+          <span style={{
+            background: 'rgba(255,255,255,0.2)',
+            borderRadius: '50%',
+            padding: '4px 8px',
+            fontSize: '0.8rem',
+            fontWeight: 'bold',
+            minWidth: '20px',
+            textAlign: 'center'
+          }}>
+            {quotesPendingCount}
+          </span>
         </button>
       </div>
 
@@ -316,7 +355,7 @@ export default function Home() {
               margin: 0,
               color: 'white'
             }}>
-              Quotes Pending - Fence Sales Pipeline
+              Quotes Pending - Fence Sales Pipeline ({quotesPendingCount})
             </h3>
             <button
               onClick={() => setShowQuotesPending(false)}
