@@ -45,7 +45,7 @@ export default async function handler(req, res) {
       },
       params: {
         location_id: locationId,
-        limit: 500
+        limit: 100 // Fixed: GHL API limit is 100, not 500
       }
     });
     

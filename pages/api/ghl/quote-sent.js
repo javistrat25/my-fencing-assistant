@@ -49,7 +49,7 @@ export default async function handler(req, res) {
       },
       params: {
         location_id: locationId,
-        limit: 500, // Increased limit to get more opportunities
+        limit: 100 // Fixed: GHL API limit is 100, not 500
         // Removed status filter to get all opportunities
       }
     });
