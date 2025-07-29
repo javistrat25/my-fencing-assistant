@@ -42,34 +42,75 @@ export default async function handler(req, res) {
   console.log('Using location ID:', locationId);
 
   try {
-    console.log('Fetching opportunities with correct GHL API specification');
+    console.log('First, getting pipelines to understand the structure...');
     
-    // Use the correct GHL opportunities search endpoint with required parameters
+    // First, get pipelines to understand the structure
+    const pipelinesResponse = await axios.get('https://services.leadconnectorhq.com/opportunities/pipelines', {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+        'Version': '2021-07-28'
+      },
+      params: {
+        locationId: locationId
+      }
+    });
+
+    console.log('Pipelines fetched successfully:', pipelinesResponse.data);
+    
+    // Now try to get opportunities
+    console.log('Now fetching opportunities with search endpoint...');
+    
     const response = await axios.get('https://services.leadconnectorhq.com/opportunities/search', {
       headers: {
         'Authorization': `Bearer ${accessToken}`,
         'Content-Type': 'application/json',
-        'Version': '2021-07-28' // Required API version header
+        'Version': '2021-07-28'
       },
       params: {
-        location_id: locationId, // Required parameter
+        location_id: locationId,
         limit: 50,
-        status: 'open', // Filter for open opportunities
-        // Try to filter by stage name in the query
-        q: 'quote sent' // Search query for quote sent opportunities
+        status: 'open'
       }
     });
 
-    console.log('Opportunities fetched successfully with GHL API specification');
+    console.log('Opportunities fetched successfully');
     
     let opportunities = response.data.opportunities || [];
     
-    // If no results with "quote sent" search, try alternative approaches
-    if (opportunities.length === 0) {
-      console.log('No results with "quote sent" search, trying broader search...');
+    // Filter for quote sent opportunities
+    const quoteSentOpportunities = opportunities.filter(opportunity => {
+      const name = opportunity.name?.toLowerCase() || '';
+      const status = opportunity.status?.toLowerCase() || '';
+      const pipelineStageId = opportunity.pipelineStageId || '';
       
-      // Try without search query to get all opportunities
-      const allResponse = await axios.get('https://services.leadconnectorhq.com/opportunities/search', {
+      return name.includes('quote sent') || 
+             name.includes('quote') ||
+             status.includes('quote sent') ||
+             status.includes('quote') ||
+             pipelineStageId.includes('quote');
+    });
+    
+    console.log(`Found ${quoteSentOpportunities.length} quote sent opportunities out of ${opportunities.length} total`);
+
+    res.status(200).json({
+      success: true,
+      opportunities: quoteSentOpportunities,
+      total: quoteSentOpportunities.length,
+      allOpportunities: opportunities.length,
+      stage: 'quote sent',
+      apiVersion: '2021-07-28',
+      locationId: locationId,
+      endpoint: '/opportunities/search',
+      pipelines: pipelinesResponse.data.pipelines || []
+    });
+  } catch (error) {
+    console.error('Error fetching opportunities:', error.response?.data || error.message);
+    
+    // Try alternative approach - get all opportunities without search
+    try {
+      console.log('Trying alternative approach - get all opportunities...');
+      const altResponse = await axios.get('https://services.leadconnectorhq.com/opportunities/search', {
         headers: {
           'Authorization': `Bearer ${accessToken}`,
           'Content-Type': 'application/json',
@@ -77,76 +118,33 @@ export default async function handler(req, res) {
         },
         params: {
           location_id: locationId,
-          limit: 100,
-          status: 'open'
-        }
-      });
-
-      const allOpportunities = allResponse.data.opportunities || [];
-      
-      // Client-side filtering for quote sent opportunities
-      opportunities = allOpportunities.filter(opportunity => {
-        const name = opportunity.name?.toLowerCase() || '';
-        const status = opportunity.status?.toLowerCase() || '';
-        const pipelineStageId = opportunity.pipelineStageId || '';
-        
-        return name.includes('quote sent') || 
-               name.includes('quote') ||
-               status.includes('quote sent') ||
-               status.includes('quote') ||
-               pipelineStageId.includes('quote');
-      });
-      
-      console.log(`Found ${opportunities.length} quote sent opportunities out of ${allOpportunities.length} total`);
-    }
-
-    res.status(200).json({
-      success: true,
-      opportunities: opportunities,
-      total: opportunities.length,
-      stage: 'quote sent',
-      apiVersion: '2021-07-28',
-      locationId: locationId,
-      endpoint: '/opportunities/search'
-    });
-  } catch (error) {
-    console.error('Error fetching opportunities:', error.response?.data || error.message);
-    
-    // Try alternative endpoint structure
-    try {
-      console.log('Trying alternative opportunities endpoint...');
-      const altResponse = await axios.get('https://rest.gohighlevel.com/v1/opportunities/', {
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'Content-Type': 'application/json',
-          'Version': '2021-07-28'
-        },
-        params: {
-          limit: 50,
-          status: 'open'
+          limit: 100
         }
       });
       
       const opportunities = altResponse.data.opportunities || [];
       
-      console.log('Alternative opportunities endpoint worked');
+      console.log('Alternative approach worked');
       res.status(200).json({
         success: true,
         opportunities: opportunities,
         total: opportunities.length,
-        stage: 'quote sent',
-        apiVersion: '2021-07-28'
+        stage: 'all opportunities',
+        apiVersion: '2021-07-28',
+        message: 'Fetched all opportunities (no filtering applied)'
       });
     } catch (altError) {
-      console.error('All opportunities endpoints failed:', altError.response?.data || altError.message);
+      console.error('All approaches failed:', altError.response?.data || altError.message);
       res.status(500).json({
         error: 'Failed to fetch opportunities',
         details: error.response?.data || error.message,
+        altError: altError.response?.data || altError.message,
         bestPractices: [
           'Use /opportunities/search endpoint',
           'Include location_id as required parameter',
           'Include Version: 2021-07-28 header',
-          'Use services.leadconnectorhq.com base URL'
+          'Use services.leadconnectorhq.com base URL',
+          'Check if location_id is correct'
         ]
       });
     }
