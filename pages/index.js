@@ -70,7 +70,9 @@ export default function Home() {
   const fetchActiveQuotes = async () => {
     setMetricsLoading(true);
     try {
-      const response = await fetch('/api/ghl/quote-sent');
+      const response = await fetch('/api/ghl/quote-sent', {
+        credentials: 'include' // Include cookies for authentication
+      });
       const data = await response.json();
       
       if (data.success && data.opportunities) {
@@ -89,7 +91,9 @@ export default function Home() {
 
   const fetchQuotesPendingCount = async () => {
     try {
-      const response = await fetch('/api/ghl/quote-pending');
+      const response = await fetch('/api/ghl/quote-pending', {
+        credentials: 'include' // Include cookies for authentication
+      });
       const data = await response.json();
       
       if (data.success && data.opportunities) {
@@ -109,7 +113,9 @@ export default function Home() {
     setQuotesPendingLoading(true);
     setShowQuotesPending(true);
     try {
-      const response = await fetch('/api/ghl/quote-pending');
+      const response = await fetch('/api/ghl/quote-pending', {
+        credentials: 'include' // Include cookies for authentication
+      });
       const data = await response.json();
       
       if (data.success && data.opportunities) {
