@@ -24,6 +24,9 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
+  // TEMP LOG: Print every incoming webhook request
+  console.log('Webhook received:', JSON.stringify(req.body, null, 2));
+
   const { eventType, data } = req.body;
 
   // Update in-memory opportunities

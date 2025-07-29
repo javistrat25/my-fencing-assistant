@@ -101,10 +101,12 @@ export default async function handler(req, res) {
       });
     });
     
-    // Filter for "Quoted–Pending" stage specifically (exact match, case-insensitive, en dash)
+    // After fetching opportunities from GHL API
+    console.log('Raw opportunities from GHL API:', JSON.stringify(opportunities, null, 2));
+    // Filter for "Quote Pending" stage specifically (case-insensitive, with a space)
     const quotePendingOpportunities = opportunities.filter(opportunity => {
       const stageName = opportunity.pipelineStage?.name?.toLowerCase() || '';
-      return stageName === 'quoted–pending'; // en dash
+      return stageName === 'quote pending';
     });
     
     console.log(`Found ${quotePendingOpportunities.length} quote pending opportunities out of ${opportunities.length} total`);
