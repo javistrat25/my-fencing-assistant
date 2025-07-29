@@ -41,11 +41,24 @@ export default async function handler(req, res) {
     console.log('Token type:', tokenResponse.data.token_type);
     console.log('Expires in:', expires_in);
 
-    // Store tokens in cookies with simplified settings
-    res.setHeader('Set-Cookie', [
-      `ghl_access_token=${access_token}; Path=/; HttpOnly; Max-Age=${expires_in}`,
-      `ghl_refresh_token=${refresh_token}; Path=/; HttpOnly; Max-Age=2592000` // 30 days
-    ]);
+    // Store tokens in cookies with proper settings for Vercel
+    const cookieOptions = [
+      `ghl_access_token=${access_token}`,
+      'Path=/',
+      'HttpOnly',
+      'SameSite=Lax',
+      `Max-Age=${expires_in}`
+    ].join('; ');
+
+    const refreshCookieOptions = [
+      `ghl_refresh_token=${refresh_token}`,
+      'Path=/',
+      'HttpOnly', 
+      'SameSite=Lax',
+      'Max-Age=2592000'
+    ].join('; ');
+
+    res.setHeader('Set-Cookie', [cookieOptions, refreshCookieOptions]);
 
     // Redirect back to the main app with success
     res.redirect(302, `/?auth=success&message=Authentication successful! You can now use the API endpoints.`);
