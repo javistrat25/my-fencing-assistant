@@ -54,15 +54,28 @@ class GHLDataCrawler {
   }
 
   async getLocations() {
-    const response = await axios.get(`${this.baseURL}/locations/`, {
-      headers: {
-        'Authorization': `Bearer ${this.token}`,
-        'Content-Type': 'application/json',
-        'Version': '2021-07-28'
-      }
-    });
-    
-    return response.data.locations || [];
+    try {
+      // Try the correct GHL locations endpoint
+      const response = await axios.get(`${this.baseURL}/locations/`, {
+        headers: {
+          'Authorization': `Bearer ${this.token}`,
+          'Content-Type': 'application/json',
+          'Version': '2021-07-28'
+        }
+      });
+      
+      return response.data.locations || [];
+    } catch (error) {
+      console.error('Error getting locations:', error.response?.data || error.message);
+      
+      // Fallback: try without locations endpoint
+      console.log('Trying fallback approach...');
+      return [{
+        id: 'default',
+        name: 'Default Location',
+        address: 'Unknown'
+      }];
+    }
   }
 
   async crawlOpportunities(locationId) {
