@@ -38,49 +38,53 @@ export default async function handler(req, res) {
   try {
     console.log('Fetching quote pending opportunities...');
     
-    // Try without location_id first, then with it as fallback
-    let opportunities = [];
-    let endpointUsed = '';
-    
+    // First, get the available locations for this token
+    let locationId = null;
     try {
-      // Try without location_id first
-      const response = await axios.get('https://services.leadconnectorhq.com/opportunities/search', {
+      const locationsResponse = await axios.get('https://services.leadconnectorhq.com/locations/', {
         headers: {
           'Authorization': `Bearer ${accessToken}`,
           'Content-Type': 'application/json',
           'Version': '2021-07-28'
-        },
-        params: {
-          limit: 100,
-          status: 'open'
         }
       });
       
-      opportunities = response.data.opportunities || [];
-      endpointUsed = 'services.leadconnectorhq.com/opportunities/search (no location_id)';
-      console.log('Success without location_id');
+      const locations = locationsResponse.data.locations || [];
+      console.log(`Found ${locations.length} locations`);
       
-    } catch (error) {
-      console.log('Failed without location_id, trying with location_id...');
+      if (locations.length > 0) {
+        locationId = locations[0].id; // Use the first available location
+        console.log('Using location ID:', locationId);
+      } else {
+        throw new Error('No locations available');
+      }
       
-      // Try with location_id as fallback
-      const response = await axios.get('https://services.leadconnectorhq.com/opportunities/search', {
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'Content-Type': 'application/json',
-          'Version': '2021-07-28'
-        },
-        params: {
-          location_id: 'hhgoXNHThJUYz4r3qS18',
-          limit: 100,
-          status: 'open'
-        }
+    } catch (locationError) {
+      console.error('Error getting locations:', locationError.response?.data || locationError.message);
+      return res.status(500).json({
+        error: 'Failed to get location ID',
+        details: locationError.response?.data || locationError.message
       });
-      
-      opportunities = response.data.opportunities || [];
-      endpointUsed = 'services.leadconnectorhq.com/opportunities/search (with location_id)';
-      console.log('Success with location_id');
     }
+    
+    // Now get opportunities using the correct location ID
+    const opportunitiesResponse = await axios.get('https://services.leadconnectorhq.com/opportunities/search', {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+        'Version': '2021-07-28'
+      },
+      params: {
+        location_id: locationId,
+        limit: 100,
+        status: 'open'
+      }
+    });
+    
+    console.log('Opportunities fetched successfully');
+    
+    let opportunities = opportunitiesResponse.data.opportunities || [];
+    console.log(`Found ${opportunities.length} total opportunities`);
     
     // Debug: Log first few opportunities to see their structure
     console.log('Sample opportunities structure:');
@@ -90,42 +94,23 @@ export default async function handler(req, res) {
         name: opp.name,
         status: opp.status,
         pipelineStageId: opp.pipelineStageId,
-        pipelineStage: opp.pipelineStage,
-        pipelineStageName: opp.pipelineStage?.name
+        pipelineId: opp.pipelineId,
+        contact: opp.contact?.name || 'No contact'
       });
     });
     
-    // Filter for "Quote Pending" stage specifically (matching GHL pipeline)
+    // Filter for "Quote Pending" stage specifically
     const quotePendingOpportunities = opportunities.filter(opportunity => {
       const name = opportunity.name?.toLowerCase() || '';
       const status = opportunity.status?.toLowerCase() || '';
       const pipelineStageId = opportunity.pipelineStageId || '';
-      const pipelineStageName = opportunity.pipelineStage?.name?.toLowerCase() || '';
       
-      // Debug: Log what we're checking
-      console.log('Checking opportunity:', {
-        name,
-        status,
-        pipelineStageId,
-        pipelineStageName,
-        isMatch: name.includes('quote pending') || 
-                 status.includes('quote pending') ||
-                 pipelineStageId.includes('quote pending') ||
-                 pipelineStageName.includes('quote pending') ||
-                 name.includes('quote') && name.includes('pending') ||
-                 status.includes('quote') && status.includes('pending') ||
-                 pipelineStageName === 'quote pending'
-      });
-      
-      // Look for exact "Quote Pending" stage match
+      // Look for quote pending indicators
       return name.includes('quote pending') || 
              status.includes('quote pending') ||
              pipelineStageId.includes('quote pending') ||
-             pipelineStageName.includes('quote pending') ||
-             // Also check for variations
              name.includes('quote') && name.includes('pending') ||
-             status.includes('quote') && status.includes('pending') ||
-             pipelineStageName === 'quote pending';
+             status.includes('quote') && status.includes('pending');
     });
     
     console.log(`Found ${quotePendingOpportunities.length} quote pending opportunities out of ${opportunities.length} total`);
@@ -136,20 +121,21 @@ export default async function handler(req, res) {
       total: quotePendingOpportunities.length,
       stage: 'Quote Pending',
       apiVersion: '2021-07-28',
-      endpoint: endpointUsed,
+      endpoint: 'services.leadconnectorhq.com/opportunities/search',
       allOpportunities: opportunities.length,
+      locationId: locationId,
       // Debug: Return first few opportunities for inspection
       debug: {
         sampleOpportunities: opportunities.slice(0, 3).map(opp => ({
           id: opp.id,
           name: opp.name,
           status: opp.status,
-          pipelineStage: opp.pipelineStage,
-          pipelineStageName: opp.pipelineStage?.name,
-          allFields: Object.keys(opp)
+          pipelineStageId: opp.pipelineStageId,
+          pipelineId: opp.pipelineId,
+          contact: opp.contact?.name || 'No contact'
         })),
         totalOpportunities: opportunities.length,
-        endpointUsed: endpointUsed
+        endpointUsed: 'services.leadconnectorhq.com/opportunities/search'
       }
     });
   } catch (error) {
