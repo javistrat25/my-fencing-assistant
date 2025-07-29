@@ -82,10 +82,33 @@ export default async function handler(req, res) {
       });
     } catch (altError) {
       console.error('Alternative endpoint also failed:', altError.response?.data || altError.message);
-      res.status(500).json({ 
-        error: 'Failed to fetch contacts',
-        details: error.response?.data || error.message
-      });
+      
+      // Try third endpoint
+      try {
+        console.log('Trying third endpoint...');
+        const thirdResponse = await axios.get('https://services.leadconnectorhq.com/v1/contacts/', {
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json'
+          },
+          params: {
+            limit: 10
+          }
+        });
+        
+        console.log('Third endpoint worked');
+        res.status(200).json({
+          success: true,
+          contacts: thirdResponse.data.contacts || [],
+          total: thirdResponse.data.total || 0
+        });
+      } catch (thirdError) {
+        console.error('All endpoints failed:', thirdError.response?.data || thirdError.message);
+        res.status(500).json({ 
+          error: 'Failed to fetch contacts',
+          details: error.response?.data || error.message
+        });
+      }
     }
   }
 } 
