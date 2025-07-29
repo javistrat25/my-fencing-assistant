@@ -37,10 +37,14 @@ export default async function handler(req, res) {
     });
   }
 
+  // GHL Location ID
+  const locationId = 'hhgoXNHThJUYz4r3qS18';
+  console.log('Using location ID:', locationId);
+
   try {
-    console.log('Fetching contacts with token');
+    console.log('Fetching contacts with token and location ID');
     
-    // Try different authorization header formats
+    // Try different authorization header formats with location ID
     const headers = {
       'Content-Type': 'application/json',
       'Version': '2021-07-28'
@@ -49,8 +53,8 @@ export default async function handler(req, res) {
     // Try Bearer token first
     headers['Authorization'] = `Bearer ${accessToken}`;
     
-    console.log('Trying with Bearer token...');
-    const response = await axios.get('https://rest.gohighlevel.com/v1/contacts/', {
+    console.log('Trying with Bearer token and location ID...');
+    const response = await axios.get(`https://rest.gohighlevel.com/v1/locations/${locationId}/contacts/`, {
       headers,
       params: {
         limit: 10 // Limit to first 10 contacts for testing
@@ -68,8 +72,8 @@ export default async function handler(req, res) {
     
     // Try alternative endpoint if first one fails
     try {
-      console.log('Trying alternative endpoint...');
-      const altResponse = await axios.get('https://api.gohighlevel.com/v1/contacts/', {
+      console.log('Trying alternative endpoint with location ID...');
+      const altResponse = await axios.get(`https://api.gohighlevel.com/v1/locations/${locationId}/contacts/`, {
         headers: {
           'Authorization': `Bearer ${accessToken}`,
           'Content-Type': 'application/json'
@@ -90,8 +94,8 @@ export default async function handler(req, res) {
       
       // Try third endpoint
       try {
-        console.log('Trying third endpoint...');
-        const thirdResponse = await axios.get('https://services.leadconnectorhq.com/v1/contacts/', {
+        console.log('Trying third endpoint with location ID...');
+        const thirdResponse = await axios.get(`https://services.leadconnectorhq.com/v1/locations/${locationId}/contacts/`, {
           headers: {
             'Authorization': `Bearer ${accessToken}`,
             'Content-Type': 'application/json'
@@ -112,8 +116,8 @@ export default async function handler(req, res) {
         
         // Try without Bearer prefix
         try {
-          console.log('Trying without Bearer prefix...');
-          const noBearerResponse = await axios.get('https://rest.gohighlevel.com/v1/contacts/', {
+          console.log('Trying without Bearer prefix and with location ID...');
+          const noBearerResponse = await axios.get(`https://rest.gohighlevel.com/v1/locations/${locationId}/contacts/`, {
             headers: {
               'Authorization': accessToken,
               'Content-Type': 'application/json'

@@ -26,6 +26,8 @@ export default async function handler(req, res) {
   console.log('Cookies received:', Object.keys(cookies));
   const accessToken = cookies.ghl_access_token;
   console.log('Access token found:', !!accessToken);
+  console.log('Access token length:', accessToken ? accessToken.length : 0);
+  console.log('Access token preview:', accessToken ? accessToken.substring(0, 20) + '...' : 'none');
   
   if (!accessToken) {
     console.log('No access token available');
@@ -35,10 +37,14 @@ export default async function handler(req, res) {
     });
   }
 
+  // GHL Location ID
+  const locationId = 'hhgoXNHThJUYz4r3qS18';
+  console.log('Using location ID:', locationId);
+
   try {
-    console.log('Fetching calendar events with token');
+    console.log('Fetching calendar events with token and location ID');
     
-    const response = await axios.get('https://rest.gohighlevel.com/v1/appointments/', {
+    const response = await axios.get(`https://rest.gohighlevel.com/v1/locations/${locationId}/appointments/`, {
       headers: {
         'Authorization': `Bearer ${accessToken}`,
         'Content-Type': 'application/json'
@@ -56,9 +62,32 @@ export default async function handler(req, res) {
     });
   } catch (error) {
     console.error('Error fetching calendar events:', error.response?.data || error.message);
-    res.status(500).json({
-      error: 'Failed to fetch calendar events',
-      details: error.response?.data || error.message
-    });
+    
+    // Try alternative endpoint
+    try {
+      console.log('Trying alternative calendar endpoint...');
+      const altResponse = await axios.get(`https://api.gohighlevel.com/v1/locations/${locationId}/appointments/`, {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
+        },
+        params: {
+          limit: 10
+        }
+      });
+      
+      console.log('Alternative calendar endpoint worked');
+      res.status(200).json({
+        success: true,
+        events: altResponse.data.appointments || [],
+        total: altResponse.data.total || 0
+      });
+    } catch (altError) {
+      console.error('All calendar endpoints failed:', altError.response?.data || altError.message);
+      res.status(500).json({
+        error: 'Failed to fetch calendar events',
+        details: error.response?.data || error.message
+      });
+    }
   }
 } 
