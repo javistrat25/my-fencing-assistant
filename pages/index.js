@@ -1,9 +1,36 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Head from 'next/head';
 
 export default function Home() {
   const [content, setContent] = useState('');
   const [loading, setLoading] = useState(false);
+  const [activeQuotes, setActiveQuotes] = useState(0);
+  const [metricsLoading, setMetricsLoading] = useState(true);
+
+  // Fetch active quotes count on component mount
+  useEffect(() => {
+    fetchActiveQuotes();
+  }, []);
+
+  const fetchActiveQuotes = async () => {
+    setMetricsLoading(true);
+    try {
+      const response = await fetch('/api/ghl/opportunities');
+      const data = await response.json();
+      
+      if (data.success && data.opportunities) {
+        // Count opportunities that are in quote sent stage
+        const quoteSentCount = data.opportunities.length;
+        setActiveQuotes(quoteSentCount);
+      } else {
+        setActiveQuotes(0);
+      }
+    } catch (error) {
+      console.error('Error fetching active quotes:', error);
+      setActiveQuotes(0);
+    }
+    setMetricsLoading(false);
+  };
 
   const healthCheck = async () => {
     setLoading(true);
@@ -35,6 +62,10 @@ export default function Home() {
       const response = await fetch('/api/ghl/opportunities');
       const data = await response.json();
       setContent(JSON.stringify(data, null, 2));
+      // Also update the active quotes count when opportunities are loaded
+      if (data.success && data.opportunities) {
+        setActiveQuotes(data.opportunities.length);
+      }
     } catch (error) {
       setContent(`Error Loading Opportunities: ${error.message}`);
     }
@@ -102,7 +133,7 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Active Quotes */}
+          {/* Active Quotes - Now Live Data */}
           <div style={{ textAlign: 'center' }}>
             <div style={{
               color: '#a0a0a0',
@@ -115,9 +146,40 @@ export default function Home() {
             <div style={{
               fontSize: '1.5rem',
               fontWeight: 'bold',
-              color: 'white'
+              color: 'white',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px'
             }}>
-              23
+              {metricsLoading ? (
+                <div style={{
+                  fontSize: '1rem',
+                  color: '#a0a0a0'
+                }}>
+                  Loading...
+                </div>
+              ) : (
+                <>
+                  {activeQuotes}
+                  <button
+                    onClick={fetchActiveQuotes}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: '#007bff',
+                      cursor: 'pointer',
+                      fontSize: '0.8rem',
+                      padding: '4px',
+                      borderRadius: '4px',
+                      marginLeft: '8px'
+                    }}
+                    title="Refresh Active Quotes"
+                  >
+                    🔄
+                  </button>
+                </>
+              )}
             </div>
           </div>
 
