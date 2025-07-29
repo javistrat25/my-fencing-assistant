@@ -35,12 +35,16 @@ export default async function handler(req, res) {
     );
 
     const { access_token, refresh_token, expires_in } = tokenResponse.data;
+    console.log('Token obtained successfully');
 
-    res.status(200).json({
-      success: true,
-      message: 'Authentication successful! You can now use the API endpoints.',
-      hasToken: !!access_token
-    });
+    // Store tokens in cookies for the session
+    res.setHeader('Set-Cookie', [
+      `ghl_access_token=${access_token}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=${expires_in}`,
+      `ghl_refresh_token=${refresh_token}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=2592000` // 30 days
+    ]);
+
+    // Redirect back to the main app with success
+    res.redirect(302, `/?auth=success&message=Authentication successful! You can now use the API endpoints.`);
   } catch (error) {
     console.error('Error exchanging code for token:', error.response?.data || error.message);
     res.status(500).json({ error: 'Failed to exchange code for token' });
