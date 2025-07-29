@@ -20,7 +20,7 @@ export default function Home() {
   const fetchActiveQuotes = async () => {
     setMetricsLoading(true);
     try {
-      const response = await fetch('/api/ghl/opportunities');
+      const response = await fetch('/api/ghl/quote-sent');
       const data = await response.json();
       
       if (data.success && data.opportunities) {
@@ -39,7 +39,7 @@ export default function Home() {
 
   const fetchQuotesPendingCount = async () => {
     try {
-      const response = await fetch('/api/ghl/opportunities');
+      const response = await fetch('/api/ghl/quote-pending');
       const data = await response.json();
       
       if (data.success && data.opportunities) {
@@ -59,7 +59,7 @@ export default function Home() {
     setQuotesPendingLoading(true);
     setShowQuotesPending(true);
     try {
-      const response = await fetch('/api/ghl/opportunities');
+      const response = await fetch('/api/ghl/quote-pending');
       const data = await response.json();
       
       if (data.success && data.opportunities) {
@@ -189,7 +189,7 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Active Quotes - Now Live Data */}
+          {/* Active Quotes - Now from Quote Sent Stage */}
           <div style={{ textAlign: 'center' }}>
             <div style={{
               color: '#a0a0a0',
@@ -197,7 +197,7 @@ export default function Home() {
               marginBottom: '8px',
               fontWeight: '500'
             }}>
-              Active Quotes
+              Active Quotes (Quote Sent)
             </div>
             <div style={{
               fontSize: '1.5rem',
