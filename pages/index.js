@@ -2,10 +2,10 @@ import { useState } from 'react';
 import Head from 'next/head';
 
 export default function Home() {
-  const [content, setContent] = useState('Click a button to load data...');
+  const [content, setContent] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const checkHealth = async () => {
+  const healthCheck = async () => {
     setLoading(true);
     try {
       const response = await fetch('/api/health');
@@ -42,113 +42,202 @@ export default function Home() {
   };
 
   return (
-    <div>
-      <Head>
-        <title>Fencing Executive Assistant</title>
-        <meta name="description" content="Fencing Executive Assistant Dashboard" />
-        <link rel="icon" href="/favicon.ico" />
-      </Head>
-
-      <main style={{
-        fontFamily: 'Arial, sans-serif',
-        margin: 0,
-        padding: '20px',
-        backgroundColor: '#f5f5f5',
-        minHeight: '100vh'
+    <div style={{ 
+      minHeight: '100vh', 
+      background: '#1a1a1a', 
+      color: 'white',
+      fontFamily: 'system-ui, -apple-system, sans-serif',
+      padding: '20px'
+    }}>
+      <h1 style={{ 
+        textAlign: 'center', 
+        fontSize: '2.5rem', 
+        fontWeight: 'bold',
+        marginBottom: '40px',
+        fontFamily: 'Georgia, serif'
       }}>
-        <div style={{
-          maxWidth: '1200px',
-          margin: '0 auto',
-          background: 'white',
-          padding: '20px',
-          borderRadius: '8px',
-          boxShadow: '0 2px 10px rgba(0,0,0,0.1)'
+        Fencing Executive Assistant
+      </h1>
+
+      {/* Hero Metrics Section */}
+      <div style={{
+        background: '#2a2a2a',
+        borderRadius: '12px',
+        padding: '30px',
+        marginBottom: '30px',
+        border: '1px solid #404040'
+      }}>
+        <h2 style={{
+          textAlign: 'center',
+          fontSize: '1.8rem',
+          fontWeight: 'bold',
+          marginBottom: '30px',
+          fontFamily: 'Georgia, serif'
         }}>
-          <h1 style={{
-            color: '#333',
-            textAlign: 'center',
-            marginBottom: '20px'
-          }}>
-            Fencing Executive Assistant
-          </h1>
-          
-          <div style={{
-            display: 'flex',
-            gap: '10px',
-            marginBottom: '20px',
-            justifyContent: 'center'
-          }}>
-            <button 
-              onClick={loadContacts}
-              disabled={loading}
-              style={{
-                padding: '10px 20px',
-                border: 'none',
-                background: '#007bff',
-                color: 'white',
-                borderRadius: '4px',
-                cursor: loading ? 'not-allowed' : 'pointer',
-                opacity: loading ? 0.7 : 1
-              }}
-            >
-              Contacts
-            </button>
-            <button 
-              onClick={loadOpportunities}
-              disabled={loading}
-              style={{
-                padding: '10px 20px',
-                border: 'none',
-                background: '#28a745',
-                color: 'white',
-                borderRadius: '4px',
-                cursor: loading ? 'not-allowed' : 'pointer',
-                opacity: loading ? 0.7 : 1
-              }}
-            >
-              Quote Sent Opportunities
-            </button>
-            <button 
-              onClick={checkHealth}
-              disabled={loading}
-              style={{
-                padding: '10px 20px',
-                border: 'none',
-                background: '#007bff',
-                color: 'white',
-                borderRadius: '4px',
-                cursor: loading ? 'not-allowed' : 'pointer',
-                opacity: loading ? 0.7 : 1
-              }}
-            >
-              Health Check
-            </button>
+          Hero Metrics Section
+        </h2>
+        
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+          gap: '20px',
+          alignItems: 'center'
+        }}>
+          {/* Revenue This Month */}
+          <div style={{ textAlign: 'center' }}>
+            <div style={{
+              color: '#a0a0a0',
+              fontSize: '0.9rem',
+              marginBottom: '8px',
+              fontWeight: '500'
+            }}>
+              Revenue This Month
+            </div>
+            <div style={{
+              fontSize: '1.5rem',
+              fontWeight: 'bold',
+              color: 'white'
+            }}>
+              $127,500
+            </div>
           </div>
-          
-          <div style={{
-            minHeight: '400px',
-            border: '1px solid #ddd',
-            padding: '20px',
-            borderRadius: '4px',
-            backgroundColor: '#f9f9f9'
-          }}>
-            {loading ? (
-              <div style={{ textAlign: 'center', color: '#666' }}>
-                Loading...
-              </div>
-            ) : (
-              <pre style={{ 
-                whiteSpace: 'pre-wrap', 
-                wordBreak: 'break-word',
-                fontFamily: 'monospace',
-                fontSize: '14px'
-              }}>
-                {content}
-              </pre>
-            )}
+
+          {/* Active Quotes */}
+          <div style={{ textAlign: 'center' }}>
+            <div style={{
+              color: '#a0a0a0',
+              fontSize: '0.9rem',
+              marginBottom: '8px',
+              fontWeight: '500'
+            }}>
+              Active Quotes
+            </div>
+            <div style={{
+              fontSize: '1.5rem',
+              fontWeight: 'bold',
+              color: 'white'
+            }}>
+              23
+            </div>
+          </div>
+
+          {/* Conversion Rate */}
+          <div style={{ textAlign: 'center' }}>
+            <div style={{
+              color: '#a0a0a0',
+              fontSize: '0.9rem',
+              marginBottom: '8px',
+              fontWeight: '500'
+            }}>
+              Conversion Rate
+            </div>
+            <div style={{
+              fontSize: '1.5rem',
+              fontWeight: 'bold',
+              color: 'white'
+            }}>
+              67%
+            </div>
+          </div>
+
+          {/* Pipeline Value */}
+          <div style={{ textAlign: 'center' }}>
+            <div style={{
+              color: '#a0a0a0',
+              fontSize: '0.9rem',
+              marginBottom: '8px',
+              fontWeight: '500'
+            }}>
+              Pipeline Value
+            </div>
+            <div style={{
+              fontSize: '1.5rem',
+              fontWeight: 'bold',
+              color: 'white'
+            }}>
+              $340,000
+            </div>
           </div>
         </div>
-      </main>
+      </div>
+
+      {/* Action Buttons */}
+      <div style={{ 
+        display: 'flex', 
+        gap: '15px', 
+        justifyContent: 'center',
+        marginBottom: '30px',
+        flexWrap: 'wrap'
+      }}>
+        <button
+          onClick={loadContacts}
+          disabled={loading}
+          style={{
+            padding: '12px 24px',
+            border: 'none',
+            background: '#007bff',
+            color: 'white',
+            borderRadius: '6px',
+            cursor: loading ? 'not-allowed' : 'pointer',
+            opacity: loading ? 0.7 : 1,
+            fontSize: '1rem',
+            fontWeight: '500'
+          }}
+        >
+          Contacts
+        </button>
+        <button
+          onClick={loadOpportunities}
+          disabled={loading}
+          style={{
+            padding: '12px 24px',
+            border: 'none',
+            background: '#28a745',
+            color: 'white',
+            borderRadius: '6px',
+            cursor: loading ? 'not-allowed' : 'pointer',
+            opacity: loading ? 0.7 : 1,
+            fontSize: '1rem',
+            fontWeight: '500'
+          }}
+        >
+          Quote Sent Opportunities
+        </button>
+        <button
+          onClick={healthCheck}
+          disabled={loading}
+          style={{
+            padding: '12px 24px',
+            border: 'none',
+            background: '#007bff',
+            color: 'white',
+            borderRadius: '6px',
+            cursor: loading ? 'not-allowed' : 'pointer',
+            opacity: loading ? 0.7 : 1,
+            fontSize: '1rem',
+            fontWeight: '500'
+          }}
+        >
+          Health Check
+        </button>
+      </div>
+
+      {/* Content Display */}
+      {content && (
+        <div style={{
+          background: 'white',
+          color: 'black',
+          padding: '20px',
+          borderRadius: '8px',
+          marginTop: '20px',
+          fontFamily: 'monospace',
+          fontSize: '14px',
+          overflow: 'auto',
+          maxHeight: '500px'
+        }}>
+          <pre>{content}</pre>
+        </div>
+      )}
     </div>
   );
 } 
