@@ -26,7 +26,8 @@ export default async function handler(req, res) {
         code: code,
         redirect_uri: 'https://my-fencing-assistant.vercel.app/api/oauth/callback',
         client_id: process.env.GHL_CLIENT_ID,
-        client_secret: process.env.GHL_CLIENT_SECRET
+        client_secret: process.env.GHL_CLIENT_SECRET,
+        user_type: 'Location' // Add user_type parameter as required by GHL
       }),
       {
         headers: {
