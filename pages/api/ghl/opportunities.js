@@ -42,47 +42,99 @@ export default async function handler(req, res) {
   console.log('Using location ID:', locationId);
 
   try {
-    console.log('Fetching opportunities in quote sent stage');
+    console.log('Fetching opportunities with server-side filtering');
     
-    // First, get all opportunities
+    // Use GHL API best practices with query parameters
     const response = await axios.get(`https://rest.gohighlevel.com/v1/locations/${locationId}/opportunities/`, {
       headers: {
         'Authorization': `Bearer ${accessToken}`,
         'Content-Type': 'application/json'
       },
       params: {
-        limit: 50 // Get more opportunities to filter
+        limit: 50,
+        // Try different stage names that might represent "quote sent"
+        stage: 'Quote Sent', // Primary attempt
+        // Additional parameters for better filtering
+        status: 'active'
       }
     });
 
-    console.log('Opportunities fetched successfully');
+    console.log('Opportunities fetched successfully with server-side filtering');
     
-    // Filter opportunities in "quote sent" stage
-    const allOpportunities = response.data.opportunities || [];
-    const quoteSentOpportunities = allOpportunities.filter(opportunity => {
-      // Check if the opportunity is in the quote sent stage
-      // This might be based on stage name, status, or custom field
-      const stageName = opportunity.stage?.name?.toLowerCase() || '';
-      const status = opportunity.status?.toLowerCase() || '';
-      const customFields = opportunity.customField || {};
+    let opportunities = response.data.opportunities || [];
+    
+    // If no results with "Quote Sent", try alternative stage names
+    if (opportunities.length === 0) {
+      console.log('No results with "Quote Sent", trying alternative stage names...');
       
-      // Look for various ways "quote sent" might be represented
-      return stageName.includes('quote sent') || 
-             stageName.includes('quote') ||
-             status.includes('quote sent') ||
-             status.includes('quote') ||
-             customFields.stage?.toLowerCase().includes('quote sent') ||
-             customFields.status?.toLowerCase().includes('quote sent');
-    });
+      const alternativeStages = ['Quote', 'Quote Sent', 'Proposal Sent', 'Estimate Sent'];
+      
+      for (const stage of alternativeStages) {
+        try {
+          const altResponse = await axios.get(`https://rest.gohighlevel.com/v1/locations/${locationId}/opportunities/`, {
+            headers: {
+              'Authorization': `Bearer ${accessToken}`,
+              'Content-Type': 'application/json'
+            },
+            params: {
+              limit: 50,
+              stage: stage,
+              status: 'active'
+            }
+          });
+          
+          opportunities = altResponse.data.opportunities || [];
+          if (opportunities.length > 0) {
+            console.log(`Found ${opportunities.length} opportunities with stage: ${stage}`);
+            break;
+          }
+        } catch (altError) {
+          console.log(`No results for stage: ${stage}`);
+        }
+      }
+    }
 
-    console.log(`Found ${quoteSentOpportunities.length} opportunities in quote sent stage out of ${allOpportunities.length} total`);
+    // If still no results, get all opportunities and filter client-side
+    if (opportunities.length === 0) {
+      console.log('No results with server-side filtering, fetching all opportunities...');
+      
+      const allResponse = await axios.get(`https://rest.gohighlevel.com/v1/locations/${locationId}/opportunities/`, {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
+        },
+        params: {
+          limit: 100,
+          status: 'active'
+        }
+      });
+
+      const allOpportunities = allResponse.data.opportunities || [];
+      
+      // Client-side filtering for quote sent opportunities
+      opportunities = allOpportunities.filter(opportunity => {
+        const stageName = opportunity.stage?.name?.toLowerCase() || '';
+        const status = opportunity.status?.toLowerCase() || '';
+        const customFields = opportunity.customField || {};
+        
+        return stageName.includes('quote sent') || 
+               stageName.includes('quote') ||
+               status.includes('quote sent') ||
+               status.includes('quote') ||
+               customFields.stage?.toLowerCase().includes('quote sent') ||
+               customFields.status?.toLowerCase().includes('quote sent');
+      });
+      
+      console.log(`Found ${opportunities.length} quote sent opportunities out of ${allOpportunities.length} total`);
+    }
 
     res.status(200).json({
       success: true,
-      opportunities: quoteSentOpportunities,
-      total: quoteSentOpportunities.length,
-      totalOpportunities: allOpportunities.length,
-      stage: 'quote sent'
+      opportunities: opportunities,
+      total: opportunities.length,
+      stage: 'quote sent',
+      apiVersion: 'v1',
+      locationId: locationId
     });
   } catch (error) {
     console.error('Error fetching opportunities:', error.response?.data || error.message);
@@ -96,33 +148,34 @@ export default async function handler(req, res) {
           'Content-Type': 'application/json'
         },
         params: {
-          limit: 50
+          limit: 50,
+          stage: 'Quote Sent',
+          status: 'active'
         }
       });
       
-      const allOpportunities = altResponse.data.opportunities || [];
-      const quoteSentOpportunities = allOpportunities.filter(opportunity => {
-        const stageName = opportunity.stage?.name?.toLowerCase() || '';
-        const status = opportunity.status?.toLowerCase() || '';
-        return stageName.includes('quote sent') || 
-               stageName.includes('quote') ||
-               status.includes('quote sent') ||
-               status.includes('quote');
-      });
+      const opportunities = altResponse.data.opportunities || [];
       
       console.log('Alternative opportunities endpoint worked');
       res.status(200).json({
         success: true,
-        opportunities: quoteSentOpportunities,
-        total: quoteSentOpportunities.length,
-        totalOpportunities: allOpportunities.length,
-        stage: 'quote sent'
+        opportunities: opportunities,
+        total: opportunities.length,
+        stage: 'quote sent',
+        apiVersion: 'v1',
+        locationId: locationId
       });
     } catch (altError) {
       console.error('All opportunities endpoints failed:', altError.response?.data || altError.message);
       res.status(500).json({
         error: 'Failed to fetch opportunities',
-        details: error.response?.data || error.message
+        details: error.response?.data || error.message,
+        bestPractices: [
+          'Use server-side filtering with query parameters',
+          'Include proper error handling',
+          'Use correct API version and endpoints',
+          'Include location ID in URL path'
+        ]
       });
     }
   }
