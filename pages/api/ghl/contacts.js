@@ -70,32 +70,32 @@ export default async function handler(req, res) {
   } catch (error) {
     console.error('Error fetching contacts:', error.response?.data || error.message);
     
-    // Try alternative endpoint if first one fails
+    // Try using token as API key in query parameter
     try {
-      console.log('Trying alternative endpoint with location ID...');
-      const altResponse = await axios.get(`https://api.gohighlevel.com/v1/locations/${locationId}/contacts/`, {
+      console.log('Trying with API key in query parameter...');
+      const apiKeyResponse = await axios.get(`https://rest.gohighlevel.com/v1/locations/${locationId}/contacts/`, {
         headers: {
-          'Authorization': `Bearer ${accessToken}`,
           'Content-Type': 'application/json'
         },
         params: {
-          limit: 10
+          limit: 10,
+          apiKey: accessToken
         }
       });
       
-      console.log('Alternative endpoint worked');
+      console.log('API key in query parameter worked');
       res.status(200).json({
         success: true,
-        contacts: altResponse.data.contacts || [],
-        total: altResponse.data.total || 0
+        contacts: apiKeyResponse.data.contacts || [],
+        total: apiKeyResponse.data.total || 0
       });
-    } catch (altError) {
-      console.error('Alternative endpoint also failed:', altError.response?.data || altError.message);
+    } catch (apiKeyError) {
+      console.error('API key in query parameter failed:', apiKeyError.response?.data || apiKeyError.message);
       
-      // Try third endpoint
+      // Try alternative endpoint if first one fails
       try {
-        console.log('Trying third endpoint with location ID...');
-        const thirdResponse = await axios.get(`https://services.leadconnectorhq.com/v1/locations/${locationId}/contacts/`, {
+        console.log('Trying alternative endpoint with location ID...');
+        const altResponse = await axios.get(`https://api.gohighlevel.com/v1/locations/${locationId}/contacts/`, {
           headers: {
             'Authorization': `Bearer ${accessToken}`,
             'Content-Type': 'application/json'
@@ -105,21 +105,21 @@ export default async function handler(req, res) {
           }
         });
         
-        console.log('Third endpoint worked');
+        console.log('Alternative endpoint worked');
         res.status(200).json({
           success: true,
-          contacts: thirdResponse.data.contacts || [],
-          total: thirdResponse.data.total || 0
+          contacts: altResponse.data.contacts || [],
+          total: altResponse.data.total || 0
         });
-      } catch (thirdError) {
-        console.error('All endpoints failed:', thirdError.response?.data || thirdError.message);
+      } catch (altError) {
+        console.error('Alternative endpoint also failed:', altError.response?.data || altError.message);
         
-        // Try without Bearer prefix
+        // Try third endpoint
         try {
-          console.log('Trying without Bearer prefix and with location ID...');
-          const noBearerResponse = await axios.get(`https://rest.gohighlevel.com/v1/locations/${locationId}/contacts/`, {
+          console.log('Trying third endpoint with location ID...');
+          const thirdResponse = await axios.get(`https://services.leadconnectorhq.com/v1/locations/${locationId}/contacts/`, {
             headers: {
-              'Authorization': accessToken,
+              'Authorization': `Bearer ${accessToken}`,
               'Content-Type': 'application/json'
             },
             params: {
@@ -127,18 +127,41 @@ export default async function handler(req, res) {
             }
           });
           
-          console.log('No Bearer prefix worked');
+          console.log('Third endpoint worked');
           res.status(200).json({
             success: true,
-            contacts: noBearerResponse.data.contacts || [],
-            total: noBearerResponse.data.total || 0
+            contacts: thirdResponse.data.contacts || [],
+            total: thirdResponse.data.total || 0
           });
-        } catch (noBearerError) {
-          console.error('All authorization methods failed');
-          res.status(500).json({ 
-            error: 'Failed to fetch contacts',
-            details: error.response?.data || error.message
-          });
+        } catch (thirdError) {
+          console.error('All endpoints failed:', thirdError.response?.data || thirdError.message);
+          
+          // Try without Bearer prefix
+          try {
+            console.log('Trying without Bearer prefix and with location ID...');
+            const noBearerResponse = await axios.get(`https://rest.gohighlevel.com/v1/locations/${locationId}/contacts/`, {
+              headers: {
+                'Authorization': accessToken,
+                'Content-Type': 'application/json'
+              },
+              params: {
+                limit: 10
+              }
+            });
+            
+            console.log('No Bearer prefix worked');
+            res.status(200).json({
+              success: true,
+              contacts: noBearerResponse.data.contacts || [],
+              total: noBearerResponse.data.total || 0
+            });
+          } catch (noBearerError) {
+            console.error('All authorization methods failed');
+            res.status(500).json({ 
+              error: 'Failed to fetch contacts',
+              details: error.response?.data || error.message
+            });
+          }
         }
       }
     }
