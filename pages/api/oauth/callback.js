@@ -37,10 +37,10 @@ export default async function handler(req, res) {
     const { access_token, refresh_token, expires_in } = tokenResponse.data;
     console.log('Token obtained successfully');
 
-    // Store tokens in cookies for the session
+    // Store tokens in cookies with simplified settings
     res.setHeader('Set-Cookie', [
-      `ghl_access_token=${access_token}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=${expires_in}`,
-      `ghl_refresh_token=${refresh_token}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=2592000` // 30 days
+      `ghl_access_token=${access_token}; Path=/; HttpOnly; Max-Age=${expires_in}`,
+      `ghl_refresh_token=${refresh_token}; Path=/; HttpOnly; Max-Age=2592000` // 30 days
     ]);
 
     // Redirect back to the main app with success
