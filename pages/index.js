@@ -11,6 +11,11 @@ export default function Home() {
   const [quotesPendingLoading, setQuotesPendingLoading] = useState(false);
   const [quotesPendingCount, setQuotesPendingCount] = useState(0);
   
+  // Real-time webhook states
+  const [realtimeQuoteSent, setRealtimeQuoteSent] = useState(null);
+  const [realtimeQuotePending, setRealtimeQuotePending] = useState(null);
+  const [webhookConnected, setWebhookConnected] = useState(false);
+  
   // Chatbot states
   const [showChatbot, setShowChatbot] = useState(false);
   const [messages, setMessages] = useState([
@@ -28,6 +33,38 @@ export default function Home() {
   useEffect(() => {
     fetchActiveQuotes();
     fetchQuotesPendingCount();
+  }, []);
+
+  // Add SSE client connection for real-time updates
+  useEffect(() => {
+    const eventSource = new EventSource('/api/dashboard/stream');
+    
+    eventSource.onopen = () => {
+      console.log('SSE connection established');
+      setWebhookConnected(true);
+    };
+    
+    eventSource.onmessage = (event) => {
+      const update = JSON.parse(event.data);
+      console.log('Real-time update:', update);
+      if (update.type === 'metrics') {
+        setRealtimeQuoteSent(update.quoteSent);
+        setRealtimeQuotePending(update.quotePending);
+        // Also update the regular states for consistency
+        setActiveQuotes(update.quoteSent);
+        setQuotesPendingCount(update.quotePending);
+      }
+    };
+    
+    eventSource.onerror = (error) => {
+      console.error('SSE connection error:', error);
+      setWebhookConnected(false);
+    };
+    
+    return () => {
+      eventSource.close();
+      setWebhookConnected(false);
+    };
   }, []);
 
   const fetchActiveQuotes = async () => {
@@ -143,21 +180,25 @@ export default function Home() {
   const generateAIResponse = async (userInput) => {
     const input = userInput.toLowerCase();
     
+    // Use real-time data when available, fallback to regular data
+    const currentQuotePending = realtimeQuotePending !== null ? realtimeQuotePending : quotesPendingCount;
+    const currentQuoteSent = realtimeQuoteSent !== null ? realtimeQuoteSent : activeQuotes;
+    
     // Check for specific keywords and provide relevant responses
     if (input.includes('quote') && input.includes('pending')) {
-      return `Currently, you have ${quotesPendingCount} quotes pending in your pipeline. These are opportunities that need your attention. Would you like me to show you the details of these pending quotes?`;
+      return `Currently, you have ${currentQuotePending} quotes pending in your pipeline. These are opportunities that need your attention. Would you like me to show you the details of these pending quotes?`;
     }
     
     if (input.includes('quote') && input.includes('sent')) {
-      return `You have ${activeQuotes} active quotes that have been sent to customers. These represent potential revenue of approximately $${(activeQuotes * 5000).toLocaleString()} based on average quote values.`;
+      return `You have ${currentQuoteSent} active quotes that have been sent to customers. These represent potential revenue of approximately $${(currentQuoteSent * 5000).toLocaleString()} based on average quote values.`;
     }
     
     if (input.includes('revenue') || input.includes('sales')) {
-      return `Your current revenue this month is $127,500. With ${activeQuotes} active quotes and a conversion rate of 67%, you're on track for strong performance this month.`;
+      return `Your current revenue this month is $127,500. With ${currentQuoteSent} active quotes and a conversion rate of 67%, you're on track for strong performance this month.`;
     }
     
     if (input.includes('pipeline') || input.includes('opportunities')) {
-      return `Your pipeline value is $340,000 with ${activeQuotes} active quotes and ${quotesPendingCount} pending quotes. Your conversion rate is 67%, which is excellent for the fencing industry.`;
+      return `Your pipeline value is $340,000 with ${currentQuoteSent} active quotes and ${currentQuotePending} pending quotes. Your conversion rate is 67%, which is excellent for the fencing industry.`;
     }
     
     if (input.includes('help') || input.includes('what can you do')) {
@@ -279,9 +320,24 @@ export default function Home() {
               color: '#a0a0a0',
               fontSize: '0.9rem',
               marginBottom: '8px',
-              fontWeight: '500'
+              fontWeight: '500',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '5px'
             }}>
               Quote Sent Opportunities
+              {webhookConnected && (
+                <span style={{
+                  fontSize: '0.7rem',
+                  color: '#28a745',
+                  background: '#28a74520',
+                  padding: '2px 6px',
+                  borderRadius: '10px'
+                }}>
+                  LIVE
+                </span>
+              )}
             </div>
             <div style={{
               fontSize: '1.5rem',
@@ -301,7 +357,7 @@ export default function Home() {
                 </div>
               ) : (
                 <>
-                  {activeQuotes}
+                  {realtimeQuoteSent !== null ? realtimeQuoteSent : activeQuotes}
                   <button
                     onClick={fetchActiveQuotes}
                     style={{
@@ -403,7 +459,7 @@ export default function Home() {
           }}
         >
           <span>
-            {quotesPendingLoading ? 'Loading...' : `Quotes Pending: ${quotesPendingCount}`}
+            {quotesPendingLoading ? 'Loading...' : `Quotes Pending: ${realtimeQuotePending !== null ? realtimeQuotePending : quotesPendingCount}`}
           </span>
           <span style={{
             background: 'rgba(255,255,255,0.2)',
@@ -414,8 +470,20 @@ export default function Home() {
             minWidth: '20px',
             textAlign: 'center'
           }}>
-            {quotesPendingCount}
+            {realtimeQuotePending !== null ? realtimeQuotePending : quotesPendingCount}
           </span>
+          {webhookConnected && (
+            <span style={{
+              fontSize: '0.7rem',
+              color: '#28a745',
+              background: '#28a74520',
+              padding: '2px 6px',
+              borderRadius: '10px',
+              marginLeft: '5px'
+            }}>
+              LIVE
+            </span>
+          )}
         </button>
 
         {/* AI Assistant Button */}
@@ -604,7 +672,7 @@ export default function Home() {
               margin: 0,
               color: 'white'
             }}>
-              Quotes Pending - Fence Sales Pipeline ({quotesPendingCount})
+              Quotes Pending - Fence Sales Pipeline ({realtimeQuotePending !== null ? realtimeQuotePending : quotesPendingCount})
             </h3>
             <button
               onClick={() => setShowQuotesPending(false)}

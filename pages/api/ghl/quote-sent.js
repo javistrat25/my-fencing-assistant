@@ -27,6 +27,8 @@ export default async function handler(req, res) {
   const accessToken = cookies.ghl_access_token;
   console.log('Access token found:', !!accessToken);
   
+  const locationId = 'hhgoXNHThJUYz4r3qS18';
+
   if (!accessToken) {
     console.log('No access token available');
     return res.status(401).json({
@@ -39,33 +41,33 @@ export default async function handler(req, res) {
     console.log('Fetching quote sent opportunities...');
     
     // First, get the available locations for this token
-    let locationId = null;
-    try {
-      const locationsResponse = await axios.get('https://services.leadconnectorhq.com/locations/', {
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'Content-Type': 'application/json',
-          'Version': '2021-07-28'
-        }
-      });
+    // let locationId = null; // This line is removed as locationId is now hardcoded
+    // try {
+    //   const locationsResponse = await axios.get('https://services.leadconnectorhq.com/locations/', {
+    //     headers: {
+    //       'Authorization': `Bearer ${accessToken}`,
+    //       'Content-Type': 'application/json',
+    //       'Version': '2021-07-28'
+    //     }
+    //   });
       
-      const locations = locationsResponse.data.locations || [];
-      console.log(`Found ${locations.length} locations`);
+    //   const locations = locationsResponse.data.locations || [];
+    //   console.log(`Found ${locations.length} locations`);
       
-      if (locations.length > 0) {
-        locationId = locations[0].id; // Use the first available location
-        console.log('Using location ID:', locationId);
-      } else {
-        throw new Error('No locations available');
-      }
+    //   if (locations.length > 0) {
+    //     locationId = locations[0].id; // Use the first available location
+    //     console.log('Using location ID:', locationId);
+    //   } else {
+    //     throw new Error('No locations available');
+    //   }
       
-    } catch (locationError) {
-      console.error('Error getting locations:', locationError.response?.data || locationError.message);
-      return res.status(500).json({
-        error: 'Failed to get location ID',
-        details: locationError.response?.data || locationError.message
-      });
-    }
+    // } catch (locationError) {
+    //   console.error('Error getting locations:', locationError.response?.data || locationError.message);
+    //   return res.status(500).json({
+    //     error: 'Failed to get location ID',
+    //     details: locationError.response?.data || locationError.message
+    //   });
+    // }
     
     // Now get opportunities using the correct location ID
     const opportunitiesResponse = await axios.get('https://services.leadconnectorhq.com/opportunities/search', {
@@ -99,18 +101,10 @@ export default async function handler(req, res) {
       });
     });
     
-    // Filter for "Quote Sent" stage specifically
+    // Filter for "Quote Sent" stage specifically (exact match, case-insensitive)
     const quoteSentOpportunities = opportunities.filter(opportunity => {
-      const name = opportunity.name?.toLowerCase() || '';
-      const status = opportunity.status?.toLowerCase() || '';
-      const pipelineStageId = opportunity.pipelineStageId || '';
-      
-      // Look for quote sent indicators
-      return name.includes('quote sent') || 
-             status.includes('quote sent') ||
-             pipelineStageId.includes('quote sent') ||
-             name.includes('quote') && name.includes('sent') ||
-             status.includes('quote') && status.includes('sent');
+      const stageName = opportunity.pipelineStage?.name?.toLowerCase() || '';
+      return stageName === 'quote sent';
     });
     
     console.log(`Found ${quoteSentOpportunities.length} quote sent opportunities out of ${opportunities.length} total`);
