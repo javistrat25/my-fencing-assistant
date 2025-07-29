@@ -40,34 +40,43 @@ export default async function handler(req, res) {
   try {
     console.log('Fetching quote sent opportunities...');
     
-    // First, get the available locations for this token
-    // let locationId = null; // This line is removed as locationId is now hardcoded
-    // try {
-    //   const locationsResponse = await axios.get('https://services.leadconnectorhq.com/locations/', {
-    //     headers: {
-    //       'Authorization': `Bearer ${accessToken}`,
-    //       'Content-Type': 'application/json',
-    //       'Version': '2021-07-28'
-    //     }
-    //   });
+    // First, get pipeline stages to create a mapping
+    let pipelineStages = [];
+    try {
+      const pipelinesResponse = await axios.get('https://services.leadconnectorhq.com/pipelines/', {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+          'Version': '2021-07-28'
+        },
+        params: {
+          location_id: locationId
+        }
+      });
       
-    //   const locations = locationsResponse.data.locations || [];
-    //   console.log(`Found ${locations.length} locations`);
+      console.log('Pipelines response:', JSON.stringify(pipelinesResponse.data, null, 2));
       
-    //   if (locations.length > 0) {
-    //     locationId = locations[0].id; // Use the first available location
-    //     console.log('Using location ID:', locationId);
-    //   } else {
-    //     throw new Error('No locations available');
-    //   }
+      // Extract all stages from all pipelines
+      if (pipelinesResponse.data.pipelines) {
+        pipelinesResponse.data.pipelines.forEach(pipeline => {
+          if (pipeline.stages) {
+            pipeline.stages.forEach(stage => {
+              pipelineStages.push({
+                id: stage.id,
+                name: stage.name,
+                pipelineId: pipeline.id
+              });
+            });
+          }
+        });
+      }
       
-    // } catch (locationError) {
-    //   console.error('Error getting locations:', locationError.response?.data || locationError.message);
-    //   return res.status(500).json({
-    //     error: 'Failed to get location ID',
-    //     details: locationError.response?.data || locationError.message
-    //   });
-    // }
+      console.log(`Found ${pipelineStages.length} pipeline stages:`, pipelineStages.map(s => `${s.name} (${s.id})`));
+      
+    } catch (pipelineError) {
+      console.error('Error fetching pipelines:', pipelineError.response?.data || pipelineError.message);
+      // Continue without pipeline stages - we'll use a fallback approach
+    }
     
     // Now get opportunities using the correct location ID
     const opportunitiesResponse = await axios.get('https://services.leadconnectorhq.com/opportunities/search', {
@@ -101,36 +110,35 @@ export default async function handler(req, res) {
       });
     });
     
-    // Filter for "Quote Sent" stage specifically (exact match, case-insensitive)
-    const quoteSentOpportunities = opportunities.filter(opportunity => {
-      const stageName = opportunity.pipelineStage?.name?.toLowerCase() || '';
-      return stageName === 'quote sent';
+    // Create a mapping from pipelineStageId to stage name
+    const stageIdToName = {};
+    pipelineStages.forEach(stage => {
+      stageIdToName[stage.id] = stage.name;
     });
     
-    console.log(`Found ${quoteSentOpportunities.length} quote sent opportunities out of ${opportunities.length} total`);
+    console.log('Stage ID to name mapping:', stageIdToName);
+    
+    // Filter for "Quote Sent" stage using the mapping
+    const quoteSentOpportunities = opportunities.filter(opportunity => {
+      const stageId = opportunity.pipelineStageId;
+      const stageName = stageIdToName[stageId] || '';
+      const isQuoteSent = stageName.toLowerCase() === 'quote sent';
+      
+      console.log(`Opportunity ${opportunity.name}: stageId=${stageId}, stageName="${stageName}", isQuoteSent=${isQuoteSent}`);
+      
+      return isQuoteSent;
+    });
+    
+    console.log('Found', quoteSentOpportunities.length, 'quote sent opportunities out of', opportunities.length, 'total');
 
     res.status(200).json({
       success: true,
       opportunities: quoteSentOpportunities,
-      total: quoteSentOpportunities.length,
-      stage: 'Quote Sent',
-      apiVersion: '2021-07-28',
-      endpoint: 'services.leadconnectorhq.com/opportunities/search',
-      allOpportunities: opportunities.length,
-      locationId: locationId,
-      // Debug: Return first few opportunities for inspection
-      debug: {
-        sampleOpportunities: opportunities.slice(0, 3).map(opp => ({
-          id: opp.id,
-          name: opp.name,
-          status: opp.status,
-          pipelineStageId: opp.pipelineStageId,
-          pipelineId: opp.pipelineId,
-          contact: opp.contact?.name || 'No contact'
-        })),
-        totalOpportunities: opportunities.length,
-        endpointUsed: 'services.leadconnectorhq.com/opportunities/search'
-      }
+      rawOpportunities: opportunities, // TEMP: Return raw data for debugging
+      totalOpportunities: opportunities.length,
+      filteredCount: quoteSentOpportunities.length,
+      pipelineStages: pipelineStages, // TEMP: Return pipeline stages for debugging
+      stageIdToName: stageIdToName // TEMP: Return mapping for debugging
     });
   } catch (error) {
     console.error('Error fetching quote sent opportunities:', error.response?.data || error.message);
