@@ -42,70 +42,43 @@ export default async function handler(req, res) {
   console.log('Using location ID:', locationId);
 
   try {
-    console.log('Fetching opportunities with server-side filtering');
+    console.log('Fetching opportunities with correct GHL API specification');
     
-    // Try the correct GHL opportunities endpoint
-    const response = await axios.get('https://rest.gohighlevel.com/v1/opportunities/', {
+    // Use the correct GHL opportunities search endpoint with required parameters
+    const response = await axios.get('https://services.leadconnectorhq.com/opportunities/search', {
       headers: {
         'Authorization': `Bearer ${accessToken}`,
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Version': '2021-07-28' // Required API version header
       },
       params: {
+        location_id: locationId, // Required parameter
         limit: 50,
-        // Try different stage names that might represent "quote sent"
-        stage: 'Quote Sent', // Primary attempt
-        // Additional parameters for better filtering
-        status: 'active'
+        status: 'open', // Filter for open opportunities
+        // Try to filter by stage name in the query
+        q: 'quote sent' // Search query for quote sent opportunities
       }
     });
 
-    console.log('Opportunities fetched successfully with server-side filtering');
+    console.log('Opportunities fetched successfully with GHL API specification');
     
     let opportunities = response.data.opportunities || [];
     
-    // If no results with "Quote Sent", try alternative stage names
+    // If no results with "quote sent" search, try alternative approaches
     if (opportunities.length === 0) {
-      console.log('No results with "Quote Sent", trying alternative stage names...');
+      console.log('No results with "quote sent" search, trying broader search...');
       
-      const alternativeStages = ['Quote', 'Quote Sent', 'Proposal Sent', 'Estimate Sent'];
-      
-      for (const stage of alternativeStages) {
-        try {
-          const altResponse = await axios.get('https://rest.gohighlevel.com/v1/opportunities/', {
-            headers: {
-              'Authorization': `Bearer ${accessToken}`,
-              'Content-Type': 'application/json'
-            },
-            params: {
-              limit: 50,
-              stage: stage,
-              status: 'active'
-            }
-          });
-          
-          opportunities = altResponse.data.opportunities || [];
-          if (opportunities.length > 0) {
-            console.log(`Found ${opportunities.length} opportunities with stage: ${stage}`);
-            break;
-          }
-        } catch (altError) {
-          console.log(`No results for stage: ${stage}`);
-        }
-      }
-    }
-
-    // If still no results, get all opportunities and filter client-side
-    if (opportunities.length === 0) {
-      console.log('No results with server-side filtering, fetching all opportunities...');
-      
-      const allResponse = await axios.get('https://rest.gohighlevel.com/v1/opportunities/', {
+      // Try without search query to get all opportunities
+      const allResponse = await axios.get('https://services.leadconnectorhq.com/opportunities/search', {
         headers: {
           'Authorization': `Bearer ${accessToken}`,
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Version': '2021-07-28'
         },
         params: {
+          location_id: locationId,
           limit: 100,
-          status: 'active'
+          status: 'open'
         }
       });
 
@@ -113,16 +86,15 @@ export default async function handler(req, res) {
       
       // Client-side filtering for quote sent opportunities
       opportunities = allOpportunities.filter(opportunity => {
-        const stageName = opportunity.stage?.name?.toLowerCase() || '';
+        const name = opportunity.name?.toLowerCase() || '';
         const status = opportunity.status?.toLowerCase() || '';
-        const customFields = opportunity.customField || {};
+        const pipelineStageId = opportunity.pipelineStageId || '';
         
-        return stageName.includes('quote sent') || 
-               stageName.includes('quote') ||
+        return name.includes('quote sent') || 
+               name.includes('quote') ||
                status.includes('quote sent') ||
                status.includes('quote') ||
-               customFields.stage?.toLowerCase().includes('quote sent') ||
-               customFields.status?.toLowerCase().includes('quote sent');
+               pipelineStageId.includes('quote');
       });
       
       console.log(`Found ${opportunities.length} quote sent opportunities out of ${allOpportunities.length} total`);
@@ -133,23 +105,25 @@ export default async function handler(req, res) {
       opportunities: opportunities,
       total: opportunities.length,
       stage: 'quote sent',
-      apiVersion: 'v1'
+      apiVersion: '2021-07-28',
+      locationId: locationId,
+      endpoint: '/opportunities/search'
     });
   } catch (error) {
     console.error('Error fetching opportunities:', error.response?.data || error.message);
     
-    // Try alternative endpoint
+    // Try alternative endpoint structure
     try {
       console.log('Trying alternative opportunities endpoint...');
-      const altResponse = await axios.get('https://api.gohighlevel.com/v1/opportunities/', {
+      const altResponse = await axios.get('https://rest.gohighlevel.com/v1/opportunities/', {
         headers: {
           'Authorization': `Bearer ${accessToken}`,
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Version': '2021-07-28'
         },
         params: {
           limit: 50,
-          stage: 'Quote Sent',
-          status: 'active'
+          status: 'open'
         }
       });
       
@@ -161,7 +135,7 @@ export default async function handler(req, res) {
         opportunities: opportunities,
         total: opportunities.length,
         stage: 'quote sent',
-        apiVersion: 'v1'
+        apiVersion: '2021-07-28'
       });
     } catch (altError) {
       console.error('All opportunities endpoints failed:', altError.response?.data || altError.message);
@@ -169,10 +143,10 @@ export default async function handler(req, res) {
         error: 'Failed to fetch opportunities',
         details: error.response?.data || error.message,
         bestPractices: [
-          'Use server-side filtering with query parameters',
-          'Include proper error handling',
-          'Use correct API version and endpoints',
-          'Include location ID in URL path'
+          'Use /opportunities/search endpoint',
+          'Include location_id as required parameter',
+          'Include Version: 2021-07-28 header',
+          'Use services.leadconnectorhq.com base URL'
         ]
       });
     }
