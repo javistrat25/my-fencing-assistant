@@ -28,7 +28,15 @@ export default function handler(req, res) {
       'contacts.write',
       'conversations/message.write',
       'opportunities.write',
-      'workflows.readonly'
+      'workflows.readonly',
+      'calendars/events.readonly',
+      'conversations.readonly',
+      'conversations/message.readonly',
+      'contacts.readonly',
+      'calendars/resources.readonly',
+      'calendars/groups.readonly',
+      'calendars.readonly',
+      'opportunities.readonly'
     ].join(' ')
   });
 
