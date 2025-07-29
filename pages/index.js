@@ -29,14 +29,14 @@ export default function Home() {
     setLoading(false);
   };
 
-  const loadCalendar = async () => {
+  const loadOpportunities = async () => {
     setLoading(true);
     try {
-      const response = await fetch('/api/ghl/calendar-events');
+      const response = await fetch('/api/ghl/opportunities');
       const data = await response.json();
       setContent(JSON.stringify(data, null, 2));
     } catch (error) {
-      setContent(`Error Loading Calendar Events: ${error.message}`);
+      setContent(`Error Loading Opportunities: ${error.message}`);
     }
     setLoading(false);
   };
@@ -94,19 +94,19 @@ export default function Home() {
               Contacts
             </button>
             <button 
-              onClick={loadCalendar}
+              onClick={loadOpportunities}
               disabled={loading}
               style={{
                 padding: '10px 20px',
                 border: 'none',
-                background: '#007bff',
+                background: '#28a745',
                 color: 'white',
                 borderRadius: '4px',
                 cursor: loading ? 'not-allowed' : 'pointer',
                 opacity: loading ? 0.7 : 1
               }}
             >
-              Calendar Events
+              Quote Sent Opportunities
             </button>
             <button 
               onClick={checkHealth}
