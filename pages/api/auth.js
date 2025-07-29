@@ -28,8 +28,6 @@ export default function handler(req, res) {
       'contacts.write',
       'conversations/message.write',
       'opportunities.write',
-      'opportunities.read',
-      'opportunities.readonly',
       'workflows.readonly'
     ].join(' ')
   });

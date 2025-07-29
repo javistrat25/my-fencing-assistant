@@ -42,39 +42,21 @@ export default async function handler(req, res) {
   console.log('Using location ID:', locationId);
 
   try {
-    console.log('First, getting pipelines to understand the structure...');
+    console.log('Trying rest.gohighlevel.com endpoint first...');
     
-    // First, get pipelines to understand the structure
-    const pipelinesResponse = await axios.get('https://services.leadconnectorhq.com/opportunities/pipelines', {
+    // Try the rest.gohighlevel.com endpoint first
+    const response = await axios.get('https://rest.gohighlevel.com/v1/opportunities/', {
       headers: {
         'Authorization': `Bearer ${accessToken}`,
-        'Content-Type': 'application/json',
-        'Version': '2021-07-28'
+        'Content-Type': 'application/json'
       },
       params: {
-        locationId: locationId
-      }
-    });
-
-    console.log('Pipelines fetched successfully:', pipelinesResponse.data);
-    
-    // Now try to get opportunities
-    console.log('Now fetching opportunities with search endpoint...');
-    
-    const response = await axios.get('https://services.leadconnectorhq.com/opportunities/search', {
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'Content-Type': 'application/json',
-        'Version': '2021-07-28'
-      },
-      params: {
-        location_id: locationId,
         limit: 50,
         status: 'open'
       }
     });
 
-    console.log('Opportunities fetched successfully');
+    console.log('Opportunities fetched successfully from rest endpoint');
     
     let opportunities = response.data.opportunities || [];
     
@@ -99,17 +81,15 @@ export default async function handler(req, res) {
       total: quoteSentOpportunities.length,
       allOpportunities: opportunities.length,
       stage: 'quote sent',
-      apiVersion: '2021-07-28',
-      locationId: locationId,
-      endpoint: '/opportunities/search',
-      pipelines: pipelinesResponse.data.pipelines || []
+      apiVersion: 'v1',
+      endpoint: 'rest.gohighlevel.com/v1/opportunities/'
     });
   } catch (error) {
-    console.error('Error fetching opportunities:', error.response?.data || error.message);
+    console.error('Error with rest endpoint:', error.response?.data || error.message);
     
-    // Try alternative approach - get all opportunities without search
+    // Try the services.leadconnectorhq.com endpoint as fallback
     try {
-      console.log('Trying alternative approach - get all opportunities...');
+      console.log('Trying services.leadconnectorhq.com endpoint...');
       const altResponse = await axios.get('https://services.leadconnectorhq.com/opportunities/search', {
         headers: {
           'Authorization': `Bearer ${accessToken}`,
@@ -118,33 +98,33 @@ export default async function handler(req, res) {
         },
         params: {
           location_id: locationId,
-          limit: 100
+          limit: 50,
+          status: 'open'
         }
       });
       
       const opportunities = altResponse.data.opportunities || [];
       
-      console.log('Alternative approach worked');
+      console.log('Services endpoint worked');
       res.status(200).json({
         success: true,
         opportunities: opportunities,
         total: opportunities.length,
         stage: 'all opportunities',
         apiVersion: '2021-07-28',
-        message: 'Fetched all opportunities (no filtering applied)'
+        endpoint: 'services.leadconnectorhq.com/opportunities/search'
       });
     } catch (altError) {
-      console.error('All approaches failed:', altError.response?.data || altError.message);
+      console.error('All endpoints failed:', altError.response?.data || altError.message);
       res.status(500).json({
         error: 'Failed to fetch opportunities',
         details: error.response?.data || error.message,
         altError: altError.response?.data || altError.message,
         bestPractices: [
-          'Use /opportunities/search endpoint',
-          'Include location_id as required parameter',
-          'Include Version: 2021-07-28 header',
-          'Use services.leadconnectorhq.com base URL',
-          'Check if location_id is correct'
+          'Try rest.gohighlevel.com/v1/opportunities/',
+          'Try services.leadconnectorhq.com/opportunities/search',
+          'Check OAuth token permissions',
+          'Verify location ID is correct'
         ]
       });
     }
