@@ -1,5 +1,18 @@
 import axios from 'axios';
-import cookie from 'cookie';
+
+// Manual cookie parser to avoid import issues
+function parseCookies(cookieHeader) {
+  const cookies = {};
+  if (!cookieHeader) return cookies;
+  
+  cookieHeader.split(';').forEach(cookie => {
+    const [name, value] = cookie.trim().split('=');
+    if (name && value) {
+      cookies[name] = decodeURIComponent(value);
+    }
+  });
+  return cookies;
+}
 
 export default async function handler(req, res) {
   console.log('Calendar events endpoint called');
@@ -9,7 +22,7 @@ export default async function handler(req, res) {
   }
 
   // Parse cookies to get access token
-  const cookies = cookie.parse(req.headers.cookie || '');
+  const cookies = parseCookies(req.headers.cookie);
   console.log('Cookies received:', Object.keys(cookies));
   const accessToken = cookies.ghl_access_token;
   console.log('Access token found:', !!accessToken);
