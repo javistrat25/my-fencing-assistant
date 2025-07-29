@@ -40,44 +40,6 @@ export default async function handler(req, res) {
   try {
     console.log('Fetching quote pending opportunities...');
     
-    // First, get pipeline stages to create a mapping
-    let pipelineStages = [];
-    try {
-      const pipelinesResponse = await axios.get('https://services.leadconnectorhq.com/pipelines/', {
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'Content-Type': 'application/json',
-          'Version': '2021-07-28'
-        },
-        params: {
-          location_id: locationId
-        }
-      });
-      
-      console.log('Pipelines response:', JSON.stringify(pipelinesResponse.data, null, 2));
-      
-      // Extract all stages from all pipelines
-      if (pipelinesResponse.data.pipelines) {
-        pipelinesResponse.data.pipelines.forEach(pipeline => {
-          if (pipeline.stages) {
-            pipeline.stages.forEach(stage => {
-              pipelineStages.push({
-                id: stage.id,
-                name: stage.name,
-                pipelineId: pipeline.id
-              });
-            });
-          }
-        });
-      }
-      
-      console.log(`Found ${pipelineStages.length} pipeline stages:`, pipelineStages.map(s => `${s.name} (${s.id})`));
-      
-    } catch (pipelineError) {
-      console.error('Error fetching pipelines:', pipelineError.response?.data || pipelineError.message);
-      // Continue without pipeline stages - we'll use a fallback approach
-    }
-    
     // Now get opportunities using the correct location ID
     const opportunitiesResponse = await axios.get('https://services.leadconnectorhq.com/opportunities/search', {
       headers: {
@@ -113,10 +75,11 @@ export default async function handler(req, res) {
     });
     
     // Create a mapping from pipelineStageId to stage name
-    const stageIdToName = {};
-    pipelineStages.forEach(stage => {
-      stageIdToName[stage.id] = stage.name;
-    });
+    const stageIdToName = {
+      // Hardcoded mapping based on known stage IDs
+      "0fa7f486-3f87-4ba2-8daa-fe83d23ef7e5": "Quote Pending",
+      "caae0892-7efb-4f5e-bcc6-07123c1cc463": "Quote Sent"
+    };
     
     console.log('Stage ID to name mapping:', stageIdToName);
     console.log('Available stage IDs:', Object.keys(stageIdToName));
@@ -169,7 +132,7 @@ export default async function handler(req, res) {
       rawOpportunities: opportunities, // TEMP: Return raw data for debugging
       totalOpportunities: opportunities.length,
       filteredCount: quotePendingOpportunities.length,
-      pipelineStages: pipelineStages, // TEMP: Return pipeline stages for debugging
+      pipelineStages: [], // TEMP: Return pipeline stages for debugging
       stageIdToName: stageIdToName // TEMP: Return mapping for debugging
     });
   } catch (error) {
