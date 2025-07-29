@@ -106,7 +106,9 @@ export default async function handler(req, res) {
         status: opp.status,
         pipelineStageId: opp.pipelineStageId,
         pipelineId: opp.pipelineId,
-        contact: opp.contact?.name || 'No contact'
+        contact: opp.contact?.name || 'No contact',
+        // Log all available fields for debugging
+        allFields: Object.keys(opp)
       });
     });
     
@@ -117,9 +119,20 @@ export default async function handler(req, res) {
     });
     
     console.log('Stage ID to name mapping:', stageIdToName);
+    console.log('Available stage IDs:', Object.keys(stageIdToName));
+    
+    // Get unique stage IDs from opportunities
+    const opportunityStageIds = [...new Set(opportunities.map(opp => opp.pipelineStageId))];
+    console.log('Opportunity stage IDs:', opportunityStageIds);
+    
+    // Check which stage IDs we have mappings for
+    const mappedStageIds = opportunityStageIds.filter(id => stageIdToName[id]);
+    const unmappedStageIds = opportunityStageIds.filter(id => !stageIdToName[id]);
+    console.log('Mapped stage IDs:', mappedStageIds);
+    console.log('Unmapped stage IDs:', unmappedStageIds);
     
     // Filter for "Quote Sent" stage using the mapping
-    const quoteSentOpportunities = opportunities.filter(opportunity => {
+    let quoteSentOpportunities = opportunities.filter(opportunity => {
       const stageId = opportunity.pipelineStageId;
       const stageName = stageIdToName[stageId] || '';
       const isQuoteSent = stageName.toLowerCase() === 'quote sent';
@@ -128,6 +141,25 @@ export default async function handler(req, res) {
       
       return isQuoteSent;
     });
+    
+    // If no opportunities found and we have unmapped stage IDs, try a fallback approach
+    if (quoteSentOpportunities.length === 0 && unmappedStageIds.length > 0) {
+      console.log('No opportunities found with pipeline stages mapping. Trying fallback approach...');
+      
+      // Try to find opportunities that might be in "Quote Sent" stage by looking at other fields
+      // This is a fallback in case the pipeline stages API doesn't work
+      quoteSentOpportunities = opportunities.filter(opportunity => {
+        // Look for any field that might contain stage information
+        const opportunityString = JSON.stringify(opportunity).toLowerCase();
+        const hasQuoteSent = opportunityString.includes('quote sent') || 
+                            opportunityString.includes('quoted sent') ||
+                            opportunityString.includes('sent quote');
+        
+        console.log(`Opportunity ${opportunity.name}: fallback check - hasQuoteSent=${hasQuoteSent}`);
+        
+        return hasQuoteSent;
+      });
+    }
     
     console.log('Found', quoteSentOpportunities.length, 'quote sent opportunities out of', opportunities.length, 'total');
 
