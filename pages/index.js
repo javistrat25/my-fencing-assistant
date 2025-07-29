@@ -10,6 +10,19 @@ export default function Home() {
   const [quotesPendingData, setQuotesPendingData] = useState([]);
   const [quotesPendingLoading, setQuotesPendingLoading] = useState(false);
   const [quotesPendingCount, setQuotesPendingCount] = useState(0);
+  
+  // Chatbot states
+  const [showChatbot, setShowChatbot] = useState(false);
+  const [messages, setMessages] = useState([
+    {
+      id: 1,
+      text: "Hello! I'm your Executive Assistant. I can help you with:\n\n• Checking quote status and pipeline data\n• Analyzing sales metrics\n• Providing insights on opportunities\n• Answering questions about your fencing business\n\nHow can I assist you today?",
+      sender: 'assistant',
+      timestamp: new Date()
+    }
+  ]);
+  const [inputMessage, setInputMessage] = useState('');
+  const [chatLoading, setChatLoading] = useState(false);
 
   // Fetch active quotes count on component mount
   useEffect(() => {
@@ -86,6 +99,77 @@ export default function Home() {
       setQuotesPendingCount(0);
     }
     setQuotesPendingLoading(false);
+  };
+
+  const handleSendMessage = async () => {
+    if (!inputMessage.trim()) return;
+
+    const userMessage = {
+      id: Date.now(),
+      text: inputMessage,
+      sender: 'user',
+      timestamp: new Date()
+    };
+
+    setMessages(prev => [...prev, userMessage]);
+    setInputMessage('');
+    setChatLoading(true);
+
+    try {
+      // Simulate AI response based on user input
+      const response = await generateAIResponse(inputMessage);
+      
+      const assistantMessage = {
+        id: Date.now() + 1,
+        text: response,
+        sender: 'assistant',
+        timestamp: new Date()
+      };
+
+      setMessages(prev => [...prev, assistantMessage]);
+    } catch (error) {
+      const errorMessage = {
+        id: Date.now() + 1,
+        text: "I apologize, but I'm having trouble processing your request right now. Please try again.",
+        sender: 'assistant',
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, errorMessage]);
+    }
+
+    setChatLoading(false);
+  };
+
+  const generateAIResponse = async (userInput) => {
+    const input = userInput.toLowerCase();
+    
+    // Check for specific keywords and provide relevant responses
+    if (input.includes('quote') && input.includes('pending')) {
+      return `Currently, you have ${quotesPendingCount} quotes pending in your pipeline. These are opportunities that need your attention. Would you like me to show you the details of these pending quotes?`;
+    }
+    
+    if (input.includes('quote') && input.includes('sent')) {
+      return `You have ${activeQuotes} active quotes that have been sent to customers. These represent potential revenue of approximately $${(activeQuotes * 5000).toLocaleString()} based on average quote values.`;
+    }
+    
+    if (input.includes('revenue') || input.includes('sales')) {
+      return `Your current revenue this month is $127,500. With ${activeQuotes} active quotes and a conversion rate of 67%, you're on track for strong performance this month.`;
+    }
+    
+    if (input.includes('pipeline') || input.includes('opportunities')) {
+      return `Your pipeline value is $340,000 with ${activeQuotes} active quotes and ${quotesPendingCount} pending quotes. Your conversion rate is 67%, which is excellent for the fencing industry.`;
+    }
+    
+    if (input.includes('help') || input.includes('what can you do')) {
+      return `I can help you with:\n\n• Checking quote status and counts\n• Analyzing sales metrics and revenue\n• Providing insights on your pipeline\n• Answering questions about your fencing business\n• Tracking opportunities and conversions\n\nJust ask me anything about your business!`;
+    }
+    
+    if (input.includes('conversion') || input.includes('rate')) {
+      return `Your current conversion rate is 67%, which is above industry average for fencing companies. This means you're converting about 2 out of every 3 quotes into sales.`;
+    }
+    
+    // Default response
+    return `I understand you're asking about "${userInput}". As your executive assistant, I can help you track quotes, analyze sales data, and provide insights about your fencing business. Could you be more specific about what you'd like to know?`;
   };
 
   const healthCheck = async () => {
@@ -279,12 +363,15 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Quotes Pending Button */}
+      {/* Action Buttons */}
       <div style={{ 
         display: 'flex', 
+        gap: '15px',
         justifyContent: 'center',
-        marginBottom: '30px'
+        marginBottom: '30px',
+        flexWrap: 'wrap'
       }}>
+        {/* Quotes Pending Button */}
         <button
           onClick={loadQuotesPending}
           disabled={quotesPendingLoading}
@@ -330,7 +417,169 @@ export default function Home() {
             {quotesPendingCount}
           </span>
         </button>
+
+        {/* AI Assistant Button */}
+        <button
+          onClick={() => setShowChatbot(!showChatbot)}
+          style={{
+            padding: '15px 30px',
+            border: 'none',
+            background: '#6f42c1',
+            color: 'white',
+            borderRadius: '8px',
+            cursor: 'pointer',
+            fontSize: '1.1rem',
+            fontWeight: '600',
+            boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+            transition: 'all 0.2s ease',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px'
+          }}
+          onMouseEnter={(e) => {
+            e.target.style.transform = 'translateY(-2px)';
+            e.target.style.boxShadow = '0 6px 12px rgba(0,0,0,0.15)';
+          }}
+          onMouseLeave={(e) => {
+            e.target.style.transform = 'translateY(0)';
+            e.target.style.boxShadow = '0 4px 6px rgba(0,0,0,0.1)';
+          }}
+        >
+          <span>🤖 AI Assistant</span>
+        </button>
       </div>
+
+      {/* AI Chatbot Window */}
+      {showChatbot && (
+        <div style={{
+          background: '#2a2a2a',
+          borderRadius: '12px',
+          padding: '30px',
+          marginBottom: '30px',
+          border: '1px solid #404040',
+          maxHeight: '600px',
+          display: 'flex',
+          flexDirection: 'column'
+        }}>
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: '20px'
+          }}>
+            <h3 style={{
+              fontSize: '1.5rem',
+              fontWeight: 'bold',
+              margin: 0,
+              color: 'white'
+            }}>
+              🤖 Executive Assistant
+            </h3>
+            <button
+              onClick={() => setShowChatbot(false)}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: '#a0a0a0',
+                cursor: 'pointer',
+                fontSize: '1.5rem',
+                padding: '4px',
+                borderRadius: '4px'
+              }}
+            >
+              ✕
+            </button>
+          </div>
+
+          {/* Chat Messages */}
+          <div style={{
+            flex: 1,
+            overflowY: 'auto',
+            marginBottom: '20px',
+            maxHeight: '400px',
+            padding: '10px',
+            background: '#1a1a1a',
+            borderRadius: '8px'
+          }}>
+            {messages.map((message) => (
+              <div key={message.id} style={{
+                marginBottom: '15px',
+                display: 'flex',
+                justifyContent: message.sender === 'user' ? 'flex-end' : 'flex-start'
+              }}>
+                <div style={{
+                  maxWidth: '70%',
+                  padding: '12px 16px',
+                  borderRadius: '12px',
+                  background: message.sender === 'user' ? '#007bff' : '#404040',
+                  color: 'white',
+                  fontSize: '0.9rem',
+                  lineHeight: '1.4',
+                  whiteSpace: 'pre-wrap'
+                }}>
+                  {message.text}
+                </div>
+              </div>
+            ))}
+            {chatLoading && (
+              <div style={{
+                display: 'flex',
+                justifyContent: 'flex-start'
+              }}>
+                <div style={{
+                  padding: '12px 16px',
+                  borderRadius: '12px',
+                  background: '#404040',
+                  color: '#a0a0a0',
+                  fontSize: '0.9rem'
+                }}>
+                  Thinking...
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Chat Input */}
+          <div style={{
+            display: 'flex',
+            gap: '10px'
+          }}>
+            <input
+              type="text"
+              value={inputMessage}
+              onChange={(e) => setInputMessage(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+              placeholder="Ask me anything about your business..."
+              style={{
+                flex: 1,
+                padding: '12px 16px',
+                border: '1px solid #404040',
+                borderRadius: '8px',
+                background: '#1a1a1a',
+                color: 'white',
+                fontSize: '0.9rem'
+              }}
+            />
+            <button
+              onClick={handleSendMessage}
+              disabled={!inputMessage.trim() || chatLoading}
+              style={{
+                padding: '12px 20px',
+                border: 'none',
+                background: '#007bff',
+                color: 'white',
+                borderRadius: '8px',
+                cursor: !inputMessage.trim() || chatLoading ? 'not-allowed' : 'pointer',
+                opacity: !inputMessage.trim() || chatLoading ? 0.5 : 1,
+                fontSize: '0.9rem',
+                fontWeight: '500'
+              }}
+            >
+              Send
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Quotes Pending Window */}
       {showQuotesPending && (
