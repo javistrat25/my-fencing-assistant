@@ -111,7 +111,20 @@ export default async function handler(req, res) {
       stage: 'Quote Pending',
       apiVersion: '2021-07-28',
       endpoint: 'services.leadconnectorhq.com/opportunities/search',
-      allOpportunities: opportunities.length
+      allOpportunities: opportunities.length,
+      // Debug: Return first few opportunities for inspection
+      debug: {
+        sampleOpportunities: opportunities.slice(0, 3).map(opp => ({
+          id: opp.id,
+          name: opp.name,
+          status: opp.status,
+          pipelineStage: opp.pipelineStage,
+          pipelineStageName: opp.pipelineStage?.name,
+          allFields: Object.keys(opp)
+        })),
+        totalOpportunities: opportunities.length,
+        endpointUsed: 'services.leadconnectorhq.com/opportunities/search'
+      }
     });
   } catch (error) {
     console.error('Error fetching quote pending opportunities:', error.response?.data || error.message);
