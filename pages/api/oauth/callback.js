@@ -23,7 +23,7 @@ export default async function handler(req, res) {
       qs.stringify({
         grant_type: 'authorization_code',
         code: code,
-        redirect_uri: `https://${process.env.VERCEL_URL}/api/oauth/callback`,
+        redirect_uri: 'https://my-fencing-assistant.vercel.app/api/oauth/callback',
         client_id: process.env.GHL_CLIENT_ID,
         client_secret: process.env.GHL_CLIENT_SECRET
       }),

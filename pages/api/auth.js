@@ -12,10 +12,13 @@ export default function handler(req, res) {
 
   console.log('GHL_CLIENT_ID found, building auth URL');
 
+  // Use the correct Vercel URL
+  const redirectUri = 'https://my-fencing-assistant.vercel.app/api/oauth/callback';
+
   const params = new URLSearchParams({
     response_type: 'code',
     client_id: process.env.GHL_CLIENT_ID,
-    redirect_uri: `https://${process.env.VERCEL_URL}/api/oauth/callback`,
+    redirect_uri: redirectUri,
     scope: [
       'calendars.write',
       'calendars/events.write',
