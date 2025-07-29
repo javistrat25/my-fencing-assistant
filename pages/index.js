@@ -69,17 +69,22 @@ export default function Home() {
 
   const fetchActiveQuotes = async () => {
     setMetricsLoading(true);
+    console.log('Fetching active quotes...');
     try {
       const response = await fetch('/api/ghl/quote-sent', {
         credentials: 'include' // Include cookies for authentication
       });
+      console.log('Quote sent response status:', response.status);
       const data = await response.json();
+      console.log('Quote sent response data:', data);
       
       if (data.success && data.opportunities) {
         // Count opportunities that are in quote sent stage
         const quoteSentCount = data.opportunities.length;
+        console.log('Setting active quotes to:', quoteSentCount);
         setActiveQuotes(quoteSentCount);
       } else {
+        console.log('No opportunities found or API error');
         setActiveQuotes(0);
       }
     } catch (error) {
@@ -90,17 +95,22 @@ export default function Home() {
   };
 
   const fetchQuotesPendingCount = async () => {
+    console.log('Fetching quotes pending count...');
     try {
       const response = await fetch('/api/ghl/quote-pending', {
         credentials: 'include' // Include cookies for authentication
       });
+      console.log('Quote pending response status:', response.status);
       const data = await response.json();
+      console.log('Quote pending response data:', data);
       
       if (data.success && data.opportunities) {
         // Count opportunities that are in quote pending stage
         const pendingCount = data.opportunities.length;
+        console.log('Setting quotes pending count to:', pendingCount);
         setQuotesPendingCount(pendingCount);
       } else {
+        console.log('No opportunities found or API error');
         setQuotesPendingCount(0);
       }
     } catch (error) {
