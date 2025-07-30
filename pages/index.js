@@ -29,14 +29,10 @@ export default function Home() {
   const [chatLoading, setChatLoading] = useState(false);
   
   // Detailed view states
-  const [showQuotesPendingDetails, setShowQuotesPendingDetails] = useState(false);
-  const [quotesPendingDetails, setQuotesPendingDetails] = useState([]);
+  const [showDetails, setShowDetails] = useState(false);
+  const [detailsData, setDetailsData] = useState([]);
   const [detailsLoading, setDetailsLoading] = useState(false);
-  
-  // Active Quotes detailed view states
-  const [showActiveQuotesDetails, setShowActiveQuotesDetails] = useState(false);
-  const [activeQuotesDetails, setActiveQuotesDetails] = useState([]);
-  const [activeQuotesDetailsLoading, setActiveQuotesDetailsLoading] = useState(false);
+  const [activeCard, setActiveCard] = useState(null); // 'quotes-pending' or 'active-quotes'
 
   // Fetch metrics on component mount
   useEffect(() => {
@@ -232,11 +228,14 @@ export default function Home() {
   };
 
   const handleQuotesPendingClick = async () => {
-    if (showQuotesPendingDetails) {
-      setShowQuotesPendingDetails(false);
+    if (showDetails && activeCard === 'quotes-pending') {
+      setShowDetails(false);
+      setActiveCard(null);
       return;
     }
 
+    setActiveCard('quotes-pending');
+    setShowDetails(true);
     setDetailsLoading(true);
     try {
       const response = await fetch('/api/ghl/quote-pending-efficient', {
@@ -245,8 +244,7 @@ export default function Home() {
       const data = await response.json();
       
       if (data.success && data.opportunities) {
-        setQuotesPendingDetails(data.opportunities);
-        setShowQuotesPendingDetails(true);
+        setDetailsData(data.opportunities);
       } else {
         console.error('Failed to fetch quotes pending details:', data.error);
       }
@@ -258,12 +256,15 @@ export default function Home() {
   };
 
   const handleActiveQuotesClick = async () => {
-    if (showActiveQuotesDetails) {
-      setShowActiveQuotesDetails(false);
+    if (showDetails && activeCard === 'active-quotes') {
+      setShowDetails(false);
+      setActiveCard(null);
       return;
     }
 
-    setActiveQuotesDetailsLoading(true);
+    setActiveCard('active-quotes');
+    setShowDetails(true);
+    setDetailsLoading(true);
     try {
       const response = await fetch('/api/ghl/quote-sent-efficient', {
         credentials: 'include'
@@ -271,15 +272,14 @@ export default function Home() {
       const data = await response.json();
       
       if (data.success && data.opportunities) {
-        setActiveQuotesDetails(data.opportunities);
-        setShowActiveQuotesDetails(true);
+        setDetailsData(data.opportunities);
       } else {
         console.error('Failed to fetch active quotes details:', data.error);
       }
     } catch (error) {
       console.error('Error fetching active quotes details:', error);
     } finally {
-      setActiveQuotesDetailsLoading(false);
+      setDetailsLoading(false);
     }
   };
 
@@ -422,8 +422,8 @@ export default function Home() {
                 borderLeft: '4px solid #3b82f6',
                 cursor: 'pointer',
                 transition: 'all 0.2s ease',
-                transform: showActiveQuotesDetails ? 'scale(1.02)' : 'scale(1)',
-                boxShadow: showActiveQuotesDetails 
+                transform: showDetails && activeCard === 'active-quotes' ? 'scale(1.02)' : 'scale(1)',
+                boxShadow: showDetails && activeCard === 'active-quotes' 
                   ? '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)' 
                   : '0 10px 15px -3px rgba(0, 0, 0, 0.1)'
               }}
@@ -432,7 +432,7 @@ export default function Home() {
                 e.currentTarget.style.boxShadow = '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)';
               }}
               onMouseLeave={(e) => {
-                if (!showActiveQuotesDetails) {
+                if (!showDetails || activeCard !== 'active-quotes') {
                   e.currentTarget.style.transform = 'scale(1)';
                   e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.1)';
                 }
@@ -445,7 +445,7 @@ export default function Home() {
                   </p>
                   <p style={{ fontSize: '14px', color: '#6b7280', margin: '4px 0 0 0' }}>
                     Active Quotes
-                    {activeQuotesDetailsLoading && <span style={{ marginLeft: '8px', color: '#3b82f6' }}>Loading...</span>}
+                    {detailsLoading && activeCard === 'active-quotes' && <span style={{ marginLeft: '8px', color: '#3b82f6' }}>Loading...</span>}
                   </p>
                 </div>
                 <div style={{ padding: '12px', backgroundColor: '#dbeafe', borderRadius: '12px' }}>
@@ -467,8 +467,8 @@ export default function Home() {
                 borderLeft: '4px solid #eab308',
                 cursor: 'pointer',
                 transition: 'all 0.2s ease',
-                transform: showQuotesPendingDetails ? 'scale(1.02)' : 'scale(1)',
-                boxShadow: showQuotesPendingDetails 
+                transform: showDetails && activeCard === 'quotes-pending' ? 'scale(1.02)' : 'scale(1)',
+                boxShadow: showDetails && activeCard === 'quotes-pending' 
                   ? '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)' 
                   : '0 10px 15px -3px rgba(0, 0, 0, 0.1)'
               }}
@@ -477,7 +477,7 @@ export default function Home() {
                 e.currentTarget.style.boxShadow = '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)';
               }}
               onMouseLeave={(e) => {
-                if (!showQuotesPendingDetails) {
+                if (!showDetails || activeCard !== 'quotes-pending') {
                   e.currentTarget.style.transform = 'scale(1)';
                   e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.1)';
                 }
@@ -490,7 +490,7 @@ export default function Home() {
                   </p>
                   <p style={{ fontSize: '14px', color: '#6b7280', margin: '4px 0 0 0' }}>
                     Quotes Pending
-                    {detailsLoading && <span style={{ marginLeft: '8px', color: '#eab308' }}>Loading...</span>}
+                    {detailsLoading && activeCard === 'quotes-pending' && <span style={{ marginLeft: '8px', color: '#eab308' }}>Loading...</span>}
                   </p>
                 </div>
                 <div style={{ padding: '12px', backgroundColor: '#fef3c7', borderRadius: '12px' }}>
@@ -536,8 +536,8 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Quotes Pending Details */}
-          {showQuotesPendingDetails && (
+          {/* Detailed View */}
+          {showDetails && (
             <div style={{ 
               marginTop: '24px', 
               backgroundColor: 'white', 
@@ -548,10 +548,13 @@ export default function Home() {
             }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
                 <h2 style={{ fontSize: '20px', fontWeight: 'bold', color: '#111827', margin: 0 }}>
-                  Quotes Pending Details
+                  {activeCard === 'quotes-pending' ? 'Quotes Pending Details' : 'Active Quotes Details'}
                 </h2>
                 <button
-                  onClick={() => setShowQuotesPendingDetails(false)}
+                  onClick={() => {
+                    setShowDetails(false);
+                    setActiveCard(null);
+                  }}
                   style={{
                     padding: '8px 12px',
                     backgroundColor: '#f3f4f6',
@@ -566,9 +569,13 @@ export default function Home() {
                 </button>
               </div>
               
-              {quotesPendingDetails.length > 0 ? (
+              {detailsLoading ? (
+                <div style={{ textAlign: 'center', padding: '32px', color: '#6b7280' }}>
+                  <p>Loading details...</p>
+                </div>
+              ) : detailsData.length > 0 ? (
                 <div style={{ display: 'grid', gap: '12px' }}>
-                  {quotesPendingDetails.map((opportunity, index) => (
+                  {detailsData.map((opportunity, index) => (
                     <div 
                       key={opportunity.id || index}
                       style={{
@@ -600,77 +607,7 @@ export default function Home() {
                 </div>
               ) : (
                 <div style={{ textAlign: 'center', padding: '32px', color: '#6b7280' }}>
-                  <p>No quotes pending details available</p>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Active Quotes Details */}
-          {showActiveQuotesDetails && (
-            <div style={{ 
-              marginTop: '24px', 
-              backgroundColor: 'white', 
-              borderRadius: '16px', 
-              boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)', 
-              padding: '24px',
-              border: '1px solid #e5e7eb'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
-                <h2 style={{ fontSize: '20px', fontWeight: 'bold', color: '#111827', margin: 0 }}>
-                  Active Quotes Details
-                </h2>
-                <button
-                  onClick={() => setShowActiveQuotesDetails(false)}
-                  style={{
-                    padding: '8px 12px',
-                    backgroundColor: '#f3f4f6',
-                    color: '#6b7280',
-                    borderRadius: '8px',
-                    border: 'none',
-                    cursor: 'pointer',
-                    fontSize: '14px'
-                  }}
-                >
-                  Close
-                </button>
-              </div>
-              
-              {activeQuotesDetails.length > 0 ? (
-                <div style={{ display: 'grid', gap: '12px' }}>
-                  {activeQuotesDetails.map((opportunity, index) => (
-                    <div 
-                      key={opportunity.id || index}
-                      style={{
-                        padding: '16px',
-                        backgroundColor: '#f9fafb',
-                        borderRadius: '12px',
-                        border: '1px solid #e5e7eb'
-                      }}
-                    >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                        <div style={{ flex: 1 }}>
-                          <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#111827', margin: '0 0 4px 0' }}>
-                            {opportunity.contact?.name || opportunity.name || 'Unnamed Contact'}
-                          </h3>
-                          {opportunity.contact?.email && (
-                            <p style={{ fontSize: '14px', color: '#6b7280', margin: '4px 0' }}>
-                              <strong>Email:</strong> {opportunity.contact.email}
-                            </p>
-                          )}
-                          {opportunity.contact?.phone && (
-                            <p style={{ fontSize: '14px', color: '#6b7280', margin: '4px 0' }}>
-                              <strong>Phone:</strong> {opportunity.contact.phone}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div style={{ textAlign: 'center', padding: '32px', color: '#6b7280' }}>
-                  <p>No active quotes details available</p>
+                  <p>No {activeCard === 'quotes-pending' ? 'quotes pending' : 'active quotes'} details available</p>
                 </div>
               )}
             </div>
