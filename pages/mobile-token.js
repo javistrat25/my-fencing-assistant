@@ -115,7 +115,7 @@ export default function MobileToken() {
         {token && (
           <div style={{ marginTop: '20px' }}>
             <a 
-              href="/mobile-dashboard"
+              href="/mobile-dashboard-persistent"
               style={{
                 display: 'inline-block',
                 padding: '12px 24px',
