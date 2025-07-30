@@ -27,6 +27,11 @@ export default function Home() {
   ]);
   const [inputMessage, setInputMessage] = useState('');
   const [chatLoading, setChatLoading] = useState(false);
+  
+  // Detailed view states
+  const [showQuotesPendingDetails, setShowQuotesPendingDetails] = useState(false);
+  const [quotesPendingDetails, setQuotesPendingDetails] = useState([]);
+  const [detailsLoading, setDetailsLoading] = useState(false);
 
   // Fetch metrics on component mount
   useEffect(() => {
@@ -221,6 +226,32 @@ export default function Home() {
     }).format(amount);
   };
 
+  const handleQuotesPendingClick = async () => {
+    if (showQuotesPendingDetails) {
+      setShowQuotesPendingDetails(false);
+      return;
+    }
+
+    setDetailsLoading(true);
+    try {
+      const response = await fetch('/api/ghl/quote-pending', {
+        credentials: 'include'
+      });
+      const data = await response.json();
+      
+      if (data.success && data.opportunities) {
+        setQuotesPendingDetails(data.opportunities);
+        setShowQuotesPendingDetails(true);
+      } else {
+        console.error('Failed to fetch quotes pending details:', data.error);
+      }
+    } catch (error) {
+      console.error('Error fetching quotes pending details:', error);
+    } finally {
+      setDetailsLoading(false);
+    }
+  };
+
   if (currentPage === 'ai-assistant') {
     return (
       <div style={{ minHeight: '100vh', backgroundColor: '#f9fafb' }}>
@@ -367,13 +398,41 @@ export default function Home() {
             </div>
 
             {/* Quotes Pending */}
-            <div style={{ backgroundColor: 'white', borderRadius: '16px', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)', padding: '24px', borderLeft: '4px solid #eab308' }}>
+            <div 
+              onClick={handleQuotesPendingClick}
+              style={{ 
+                backgroundColor: 'white', 
+                borderRadius: '16px', 
+                boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)', 
+                padding: '24px', 
+                borderLeft: '4px solid #eab308',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                transform: showQuotesPendingDetails ? 'scale(1.02)' : 'scale(1)',
+                boxShadow: showQuotesPendingDetails 
+                  ? '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)' 
+                  : '0 10px 15px -3px rgba(0, 0, 0, 0.1)'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'scale(1.02)';
+                e.currentTarget.style.boxShadow = '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)';
+              }}
+              onMouseLeave={(e) => {
+                if (!showQuotesPendingDetails) {
+                  e.currentTarget.style.transform = 'scale(1)';
+                  e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.1)';
+                }
+              }}
+            >
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div>
                   <p style={{ fontSize: '36px', fontWeight: 'bold', color: '#111827', margin: 0 }}>
                     {metricsLoading ? '...' : formatNumber(quotesPending)}
                   </p>
-                  <p style={{ fontSize: '14px', color: '#6b7280', margin: '4px 0 0 0' }}>Quotes Pending</p>
+                  <p style={{ fontSize: '14px', color: '#6b7280', margin: '4px 0 0 0' }}>
+                    Quotes Pending
+                    {detailsLoading && <span style={{ marginLeft: '8px', color: '#eab308' }}>Loading...</span>}
+                  </p>
                 </div>
                 <div style={{ padding: '12px', backgroundColor: '#fef3c7', borderRadius: '12px' }}>
                   <svg width="32" height="32" fill="none" stroke="#eab308" viewBox="0 0 24 24">
@@ -417,6 +476,76 @@ export default function Home() {
               </div>
             </div>
           </div>
+
+          {/* Quotes Pending Details */}
+          {showQuotesPendingDetails && (
+            <div style={{ 
+              marginTop: '24px', 
+              backgroundColor: 'white', 
+              borderRadius: '16px', 
+              boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)', 
+              padding: '24px',
+              border: '1px solid #e5e7eb'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
+                <h2 style={{ fontSize: '20px', fontWeight: 'bold', color: '#111827', margin: 0 }}>
+                  Quotes Pending Details
+                </h2>
+                <button
+                  onClick={() => setShowQuotesPendingDetails(false)}
+                  style={{
+                    padding: '8px 12px',
+                    backgroundColor: '#f3f4f6',
+                    color: '#6b7280',
+                    borderRadius: '8px',
+                    border: 'none',
+                    cursor: 'pointer',
+                    fontSize: '14px'
+                  }}
+                >
+                  Close
+                </button>
+              </div>
+              
+              {quotesPendingDetails.length > 0 ? (
+                <div style={{ display: 'grid', gap: '12px' }}>
+                  {quotesPendingDetails.map((opportunity, index) => (
+                    <div 
+                      key={opportunity.id || index}
+                      style={{
+                        padding: '16px',
+                        backgroundColor: '#f9fafb',
+                        borderRadius: '12px',
+                        border: '1px solid #e5e7eb'
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        <div style={{ flex: 1 }}>
+                          <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#111827', margin: '0 0 4px 0' }}>
+                            {opportunity.contact?.name || opportunity.name || 'Unnamed Contact'}
+                          </h3>
+                          {opportunity.contact?.email && (
+                            <p style={{ fontSize: '14px', color: '#6b7280', margin: '4px 0' }}>
+                              <strong>Email:</strong> {opportunity.contact.email}
+                            </p>
+                          )}
+                          {opportunity.contact?.phone && (
+                            <p style={{ fontSize: '14px', color: '#6b7280', margin: '4px 0' }}>
+                              <strong>Phone:</strong> {opportunity.contact.phone}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div style={{ textAlign: 'center', padding: '32px', color: '#6b7280' }}>
+                  <p>No quotes pending details available</p>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Real-time Connection Status */}
           {webhookConnected && (
