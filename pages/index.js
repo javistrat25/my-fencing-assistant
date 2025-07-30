@@ -44,11 +44,16 @@ export default function Home() {
     
     eventSource.onmessage = (event) => {
       const update = JSON.parse(event.data);
-      console.log('Real-time update:', update);
+      console.log('🔄 Real-time update received:', update);
       if (update.type === 'metrics') {
+        console.log('📊 Real-time metrics update:', {
+          quoteSent: update.quoteSent,
+          quotePending: update.quotePending
+        });
         setRealtimeQuoteSent(update.quoteSent);
         setRealtimeQuotePending(update.quotePending);
         // Also update the regular states for consistency
+        console.log('✅ Updating states from real-time data');
         setActiveQuotes(update.quoteSent);
         setQuotesPending(update.quotePending);
       }
@@ -67,49 +72,78 @@ export default function Home() {
 
   const fetchMetrics = async () => {
     setMetricsLoading(true);
-    console.log('Fetching all metrics...');
+    console.log('🔄 Starting to fetch all metrics...');
     
     try {
       // Fetch Active Quotes
+      console.log('📊 Fetching Active Quotes...');
       const activeQuotesResponse = await fetch('/api/ghl/quote-sent', {
         credentials: 'include'
       });
       const activeQuotesData = await activeQuotesResponse.json();
+      console.log('📊 Active Quotes response:', activeQuotesData);
       if (activeQuotesData.success && activeQuotesData.opportunities) {
-        setActiveQuotes(activeQuotesData.opportunities.length);
+        const count = activeQuotesData.opportunities.length;
+        console.log('✅ Setting Active Quotes to:', count);
+        setActiveQuotes(count);
+      } else {
+        console.log('❌ Active Quotes failed or no data');
+        setActiveQuotes(0);
       }
 
       // Fetch Quotes Pending
+      console.log('📊 Fetching Quotes Pending...');
       const quotesPendingResponse = await fetch('/api/ghl/quote-pending', {
         credentials: 'include'
       });
       const quotesPendingData = await quotesPendingResponse.json();
+      console.log('📊 Quotes Pending response:', quotesPendingData);
       if (quotesPendingData.success && quotesPendingData.opportunities) {
-        setQuotesPending(quotesPendingData.opportunities.length);
+        const count = quotesPendingData.opportunities.length;
+        console.log('✅ Setting Quotes Pending to:', count);
+        setQuotesPending(count);
+      } else {
+        console.log('❌ Quotes Pending failed or no data');
+        setQuotesPending(0);
       }
 
       // Fetch Won Invoices
+      console.log('📊 Fetching Won Invoices...');
       const wonInvoicesResponse = await fetch('/api/ghl/won-invoices', {
         credentials: 'include'
       });
       const wonInvoicesData = await wonInvoicesResponse.json();
+      console.log('📊 Won Invoices response:', wonInvoicesData);
       if (wonInvoicesData.success) {
-        setWonInvoices(wonInvoicesData.total);
+        const count = wonInvoicesData.total;
+        console.log('✅ Setting Won Invoices to:', count);
+        setWonInvoices(count);
+      } else {
+        console.log('❌ Won Invoices failed or no data');
+        setWonInvoices(0);
       }
 
       // Fetch Revenue
+      console.log('📊 Fetching Revenue...');
       const revenueResponse = await fetch('/api/ghl/revenue', {
         credentials: 'include'
       });
       const revenueData = await revenueResponse.json();
+      console.log('📊 Revenue response:', revenueData);
       if (revenueData.success) {
-        setRevenue(revenueData.revenue);
+        const amount = revenueData.revenue;
+        console.log('✅ Setting Revenue to:', amount);
+        setRevenue(amount);
+      } else {
+        console.log('❌ Revenue failed or no data');
+        setRevenue(0);
       }
       
     } catch (error) {
-      console.error('Error fetching metrics:', error);
+      console.error('❌ Error fetching metrics:', error);
     }
     
+    console.log('✅ Finished fetching metrics');
     setMetricsLoading(false);
   };
 
