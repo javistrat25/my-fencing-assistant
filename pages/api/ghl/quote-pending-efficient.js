@@ -46,7 +46,7 @@ export default async function handler(req, res) {
       },
       params: {
         location_id: 'hhgoXNHThJUYz4r3qS18',
-        limit: 1000, // Use a high limit to get all opportunities from this stage
+        limit: 100, // GHL API maximum limit
         pipeline_stage_id: quotePendingStageId
       }
     });
