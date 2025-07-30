@@ -33,25 +33,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    console.log('Fetching won invoices...');
-    
-    // Get all opportunities
-    const opportunitiesResponse = await axios.get('https://services.leadconnectorhq.com/opportunities/search', {
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'Content-Type': 'application/json',
-        'Version': '2021-07-28'
-      },
-      params: {
-        location_id: 'hhgoXNHThJUYz4r3qS18',
-        limit: 100
-      }
-    });
-    
-    console.log('Opportunities fetched successfully');
-    
-    let opportunities = opportunitiesResponse.data.opportunities || [];
-    console.log(`Found ${opportunities.length} total opportunities`);
+    console.log('Fetching all won invoices with pagination...');
     
     // Updated stage ID mapping based on actual pipeline stages
     const stageIdToName = {
@@ -66,27 +48,82 @@ export default async function handler(req, res) {
       "1b494e0c-2833-4d04-8220-a5b23714a11c": "LOST client"
     };
     
-    // Filter for "Won-Invoiced" stage using the correct stage ID
     const wonInvoicedStageId = "2a02ea5a-d040-4ff5-a29b-d5747ed3340b";
+    let allOpportunities = [];
+    let skip = 0;
+    const limit = 100;
+    let hasMore = true;
     
-    const wonInvoices = opportunities.filter(opportunity => {
+    // Fetch all opportunities using pagination
+    while (hasMore) {
+      console.log(`Fetching opportunities batch: skip=${skip}, limit=${limit}`);
+      
+      const opportunitiesResponse = await axios.get('https://services.leadconnectorhq.com/opportunities/search', {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+          'Version': '2021-07-28'
+        },
+        params: {
+          location_id: 'hhgoXNHThJUYz4r3qS18',
+          limit: limit,
+          skip: skip
+        }
+      });
+      
+      const batchOpportunities = opportunitiesResponse.data.opportunities || [];
+      console.log(`Batch returned ${batchOpportunities.length} opportunities`);
+      
+      if (batchOpportunities.length === 0) {
+        hasMore = false;
+      } else {
+        allOpportunities = allOpportunities.concat(batchOpportunities);
+        skip += limit;
+        
+        // Safety check to prevent infinite loops
+        if (skip > 10000) {
+          console.log('Reached safety limit, stopping pagination');
+          hasMore = false;
+        }
+      }
+    }
+    
+    console.log(`Total opportunities fetched: ${allOpportunities.length}`);
+    
+    // Filter for "Won-Invoiced" stage using the correct stage ID
+    const wonInvoices = allOpportunities.filter(opportunity => {
       const isWonInvoiced = opportunity.pipelineStageId === wonInvoicedStageId;
       const stageName = stageIdToName[opportunity.pipelineStageId] || 'Unknown';
       
-      console.log(`Opportunity ${opportunity.name}: stageId=${opportunity.pipelineStageId}, stageName="${stageName}", isWonInvoiced=${isWonInvoiced}`);
+      if (isWonInvoiced) {
+        console.log(`Won Invoice Opportunity: ${opportunity.name} - Contact: ${opportunity.contact?.name || 'No contact'}`);
+      }
       
       return isWonInvoiced;
     });
     
-    console.log(`Found ${wonInvoices.length} won invoices out of ${opportunities.length} total`);
+    console.log(`Found ${wonInvoices.length} won invoices out of ${allOpportunities.length} total`);
+    
+    // Log stage distribution for debugging
+    const stageDistribution = {};
+    allOpportunities.forEach(opp => {
+      const stageName = stageIdToName[opp.pipelineStageId] || 'Unknown';
+      stageDistribution[stageName] = (stageDistribution[stageName] || 0) + 1;
+    });
+    console.log('Stage distribution:', stageDistribution);
 
     res.status(200).json({
       success: true,
       wonInvoices: wonInvoices,
       total: wonInvoices.length,
-      allOpportunities: opportunities.length,
+      allOpportunities: allOpportunities.length,
       stageMapping: stageIdToName,
-      wonInvoicedStageId: wonInvoicedStageId
+      wonInvoicedStageId: wonInvoicedStageId,
+      stageDistribution: stageDistribution,
+      paginationInfo: {
+        totalBatches: Math.ceil(skip / limit),
+        totalFetched: allOpportunities.length
+      }
     });
     
   } catch (error) {

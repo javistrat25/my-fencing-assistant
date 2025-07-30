@@ -33,25 +33,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    console.log('Fetching quote pending opportunities...');
-    
-    // Get all opportunities
-    const opportunitiesResponse = await axios.get('https://services.leadconnectorhq.com/opportunities/search', {
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'Content-Type': 'application/json',
-        'Version': '2021-07-28'
-      },
-      params: {
-        location_id: 'hhgoXNHThJUYz4r3qS18',
-        limit: 100
-      }
-    });
-    
-    console.log('Opportunities fetched successfully');
-    
-    let opportunities = opportunitiesResponse.data.opportunities || [];
-    console.log(`Found ${opportunities.length} total opportunities`);
+    console.log('Fetching all quote pending opportunities with pagination...');
     
     // Updated stage ID mapping based on actual pipeline stages
     const stageIdToName = {
@@ -67,33 +49,86 @@ export default async function handler(req, res) {
       "0fa7f486-3f87-4ba2-8daa-fe83d23ef7e5": "Quote Pending"
     };
     
-    console.log('Stage ID to name mapping:', stageIdToName);
+    const quotePendingStageId = "0fa7f486-3f87-4ba2-8daa-fe83d23ef7e5";
+    let allOpportunities = [];
+    let skip = 0;
+    const limit = 100;
+    let hasMore = true;
     
-    // Get unique stage IDs from opportunities
-    const opportunityStageIds = [...new Set(opportunities.map(opp => opp.pipelineStageId))];
-    console.log('Opportunity stage IDs:', opportunityStageIds);
+    // Fetch all opportunities using pagination
+    while (hasMore) {
+      console.log(`Fetching opportunities batch: skip=${skip}, limit=${limit}`);
+      
+      const opportunitiesResponse = await axios.get('https://services.leadconnectorhq.com/opportunities/search', {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+          'Version': '2021-07-28'
+        },
+        params: {
+          location_id: 'hhgoXNHThJUYz4r3qS18',
+          limit: limit,
+          skip: skip
+        }
+      });
+      
+      const batchOpportunities = opportunitiesResponse.data.opportunities || [];
+      console.log(`Batch returned ${batchOpportunities.length} opportunities`);
+      
+      if (batchOpportunities.length === 0) {
+        hasMore = false;
+      } else {
+        allOpportunities = allOpportunities.concat(batchOpportunities);
+        skip += limit;
+        
+        // Safety check to prevent infinite loops
+        if (skip > 10000) {
+          console.log('Reached safety limit, stopping pagination');
+          hasMore = false;
+        }
+      }
+    }
+    
+    console.log(`Total opportunities fetched: ${allOpportunities.length}`);
+    
+    // Get unique stage IDs from all opportunities
+    const opportunityStageIds = [...new Set(allOpportunities.map(opp => opp.pipelineStageId))];
+    console.log('All opportunity stage IDs:', opportunityStageIds);
     
     // Filter for "Quote Pending" stage using the exact stage ID
-    const quotePendingStageId = "0fa7f486-3f87-4ba2-8daa-fe83d23ef7e5";
-    
-    let quotePendingOpportunities = opportunities.filter(opportunity => {
+    let quotePendingOpportunities = allOpportunities.filter(opportunity => {
       const isQuotePending = opportunity.pipelineStageId === quotePendingStageId;
       const stageName = stageIdToName[opportunity.pipelineStageId] || 'Unknown';
       
-      console.log(`Opportunity ${opportunity.name}: stageId=${opportunity.pipelineStageId}, stageName="${stageName}", isQuotePending=${isQuotePending}`);
+      if (isQuotePending) {
+        console.log(`Quote Pending Opportunity: ${opportunity.name} - Contact: ${opportunity.contact?.name || 'No contact'}`);
+      }
       
       return isQuotePending;
     });
     
-    console.log(`Found ${quotePendingOpportunities.length} quote pending opportunities out of ${opportunities.length} total`);
+    console.log(`Found ${quotePendingOpportunities.length} quote pending opportunities out of ${allOpportunities.length} total`);
+    
+    // Log stage distribution for debugging
+    const stageDistribution = {};
+    allOpportunities.forEach(opp => {
+      const stageName = stageIdToName[opp.pipelineStageId] || 'Unknown';
+      stageDistribution[stageName] = (stageDistribution[stageName] || 0) + 1;
+    });
+    console.log('Stage distribution:', stageDistribution);
 
     res.status(200).json({
       success: true,
       opportunities: quotePendingOpportunities,
       total: quotePendingOpportunities.length,
-      allOpportunities: opportunities.length,
+      allOpportunities: allOpportunities.length,
       stageMapping: stageIdToName,
-      availableStages: opportunityStageIds
+      availableStages: opportunityStageIds,
+      stageDistribution: stageDistribution,
+      paginationInfo: {
+        totalBatches: Math.ceil(skip / limit),
+        totalFetched: allOpportunities.length
+      }
     });
     
   } catch (error) {
