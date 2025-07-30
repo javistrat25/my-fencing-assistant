@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 
+// Updated dashboard with modern design - v2
 export default function Home() {
   const [activeQuotes, setActiveQuotes] = useState(0);
   const [quotesPending, setQuotesPending] = useState(0);
