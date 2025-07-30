@@ -63,7 +63,8 @@ export default async function handler(req, res) {
       "df57527e-fa1f-4d4d-b348-dbaad3201e9b": "Powder- In Progress",
       "7219e696-269c-4865-bc38-c29b3e44b4aa": "Installing- In Progress",
       "27e4efe6-42cd-4937-ad8d-118ab234d95f": "Finished- Pending Payment",
-      "1b494e0c-2833-4d04-8220-a5b23714a11c": "LOST client"
+      "1b494e0c-2833-4d04-8220-a5b23714a11c": "LOST client",
+      "0fa7f486-3f87-4ba2-8daa-fe83d23ef7e5": "Quote Pending"
     };
     
     console.log('Stage ID to name mapping:', stageIdToName);
@@ -72,18 +73,14 @@ export default async function handler(req, res) {
     const opportunityStageIds = [...new Set(opportunities.map(opp => opp.pipelineStageId))];
     console.log('Opportunity stage IDs:', opportunityStageIds);
     
-    // For "Quote Pending" - we'll look for opportunities that might be ready for quotes
-    // Since there's no specific "Quote Pending" stage, let's look for early stage opportunities
+    // Filter for "Quote Pending" stage using the exact stage ID
+    const quotePendingStageId = "0fa7f486-3f87-4ba2-8daa-fe83d23ef7e5";
+    
     let quotePendingOpportunities = opportunities.filter(opportunity => {
-      const stageId = opportunity.pipelineStageId;
-      const stageName = stageIdToName[stageId] || '';
+      const isQuotePending = opportunity.pipelineStageId === quotePendingStageId;
+      const stageName = stageIdToName[opportunity.pipelineStageId] || 'Unknown';
       
-      // Look for stages that might indicate quotes are pending
-      // This is a best guess based on the pipeline stages available
-      const isQuotePending = stageName.toLowerCase().includes('first contact') ||
-                           stageName.toLowerCase().includes('scheduled visit');
-      
-      console.log(`Opportunity ${opportunity.name}: stageId=${stageId}, stageName="${stageName}", isQuotePending=${isQuotePending}`);
+      console.log(`Opportunity ${opportunity.name}: stageId=${opportunity.pipelineStageId}, stageName="${stageName}", isQuotePending=${isQuotePending}`);
       
       return isQuotePending;
     });

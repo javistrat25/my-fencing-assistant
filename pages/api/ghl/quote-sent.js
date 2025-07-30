@@ -63,7 +63,8 @@ export default async function handler(req, res) {
       "df57527e-fa1f-4d4d-b348-dbaad3201e9b": "Powder- In Progress",
       "7219e696-269c-4865-bc38-c29b3e44b4aa": "Installing- In Progress",
       "27e4efe6-42cd-4937-ad8d-118ab234d95f": "Finished- Pending Payment",
-      "1b494e0c-2833-4d04-8220-a5b23714a11c": "LOST client"
+      "1b494e0c-2833-4d04-8220-a5b23714a11c": "LOST client",
+      "caae0892-7efb-4f5e-bcc6-07123c1cc463": "Quote Sent"
     };
     
     console.log('Stage ID to name mapping:', stageIdToName);
@@ -72,21 +73,14 @@ export default async function handler(req, res) {
     const opportunityStageIds = [...new Set(opportunities.map(opp => opp.pipelineStageId))];
     console.log('Opportunity stage IDs:', opportunityStageIds);
     
-    // For "Quote Sent" - we'll look for opportunities that might be in a quote stage
-    // Since there's no specific "Quote Sent" stage, let's look for opportunities that might be ready for quotes
+    // Filter for "Quote Sent" stage using the exact stage ID
+    const quoteSentStageId = "caae0892-7efb-4f5e-bcc6-07123c1cc463";
+    
     let quoteSentOpportunities = opportunities.filter(opportunity => {
-      const stageId = opportunity.pipelineStageId;
-      const stageName = stageIdToName[stageId] || '';
+      const isQuoteSent = opportunity.pipelineStageId === quoteSentStageId;
+      const stageName = stageIdToName[opportunity.pipelineStageId] || 'Unknown';
       
-      // Look for stages that might indicate quotes have been sent
-      // This is a best guess based on the pipeline stages available
-      const isQuoteSent = stageName.toLowerCase().includes('scheduled') ||
-                         stageName.toLowerCase().includes('visit') ||
-                         stageName.toLowerCase().includes('fabrication') ||
-                         stageName.toLowerCase().includes('powder') ||
-                         stageName.toLowerCase().includes('installing');
-      
-      console.log(`Opportunity ${opportunity.name}: stageId=${stageId}, stageName="${stageName}", isQuoteSent=${isQuoteSent}`);
+      console.log(`Opportunity ${opportunity.name}: stageId=${opportunity.pipelineStageId}, stageName="${stageName}", isQuoteSent=${isQuoteSent}`);
       
       return isQuoteSent;
     });
