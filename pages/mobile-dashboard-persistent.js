@@ -11,6 +11,7 @@ export default function MobileDashboardPersistent() {
   const [authError, setAuthError] = useState(null);
   const [tokenStatus, setTokenStatus] = useState('checking');
   const [currentPage, setCurrentPage] = useState('dashboard');
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   
   // AI Assistant states
   const [showChatbot, setShowChatbot] = useState(false);
@@ -367,21 +368,75 @@ export default function MobileDashboardPersistent() {
       minHeight: '100vh', 
       backgroundColor: '#f8fafc',
       fontFamily: 'Arial, sans-serif',
-      display: 'flex'
+      display: 'flex',
+      position: 'relative'
     }}>
       <Head>
         <title>Mobile Dashboard - Fencing Assistant</title>
       </Head>
       
+      {/* Mobile Burger Menu */}
+      <div style={{
+        position: 'fixed',
+        top: '20px',
+        left: '20px',
+        zIndex: 1000,
+        display: 'block'
+      }}>
+        <button
+          onClick={() => setSidebarOpen(!sidebarOpen)}
+          style={{
+            width: '40px',
+            height: '40px',
+            backgroundColor: 'white',
+            border: '1px solid #e5e7eb',
+            borderRadius: '8px',
+            cursor: 'pointer',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'center',
+            alignItems: 'center',
+            gap: '3px',
+            boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+          }}
+        >
+          <div style={{
+            width: '20px',
+            height: '2px',
+            backgroundColor: '#374151',
+            transition: 'all 0.3s ease'
+          }} />
+          <div style={{
+            width: '20px',
+            height: '2px',
+            backgroundColor: '#374151',
+            transition: 'all 0.3s ease'
+          }} />
+          <div style={{
+            width: '20px',
+            height: '2px',
+            backgroundColor: '#374151',
+            transition: 'all 0.3s ease'
+          }} />
+        </button>
+      </div>
+      
       {/* Sidebar */}
       <div style={{
-        width: '250px',
+        position: 'fixed',
+        top: 0,
+        left: sidebarOpen ? 0 : '-280px',
+        width: '280px',
+        height: '100vh',
         backgroundColor: 'white',
         borderRight: '1px solid #e5e7eb',
         padding: '20px',
         display: 'flex',
         flexDirection: 'column',
-        gap: '12px'
+        gap: '12px',
+        transition: 'left 0.3s ease',
+        zIndex: 999,
+        boxShadow: sidebarOpen ? '2px 0 8px rgba(0,0,0,0.1)' : 'none'
       }}>
         <div style={{ marginBottom: '20px' }}>
           <h2 style={{ 
@@ -402,7 +457,10 @@ export default function MobileDashboardPersistent() {
         </div>
 
         <button
-          onClick={() => setCurrentPage('dashboard')}
+          onClick={() => {
+            setCurrentPage('dashboard');
+            setSidebarOpen(false);
+          }}
           style={{
             padding: '12px 16px',
             backgroundColor: currentPage === 'dashboard' ? '#3b82f6' : 'transparent',
@@ -419,7 +477,10 @@ export default function MobileDashboardPersistent() {
         </button>
 
         <button
-          onClick={() => setCurrentPage('ai-assistant')}
+          onClick={() => {
+            setCurrentPage('ai-assistant');
+            setSidebarOpen(false);
+          }}
           style={{
             padding: '12px 16px',
             backgroundColor: currentPage === 'ai-assistant' ? '#3b82f6' : 'transparent',
@@ -454,8 +515,28 @@ export default function MobileDashboardPersistent() {
         </div>
       </div>
 
+      {/* Overlay to close sidebar when clicking outside */}
+      {sidebarOpen && (
+        <div
+          onClick={() => setSidebarOpen(false)}
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0,0,0,0.5)',
+            zIndex: 998
+          }}
+        />
+      )}
+
       {/* Main Content */}
-      <div style={{ flex: 1 }}>
+      <div style={{ 
+        flex: 1,
+        marginLeft: '80px', // Space for burger menu
+        width: '100%'
+      }}>
         {currentPage === 'dashboard' ? (
           <>
             {/* Header */}
