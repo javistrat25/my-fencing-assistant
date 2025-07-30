@@ -10,6 +10,20 @@ export default function MobileDashboardPersistent() {
   const [authToken, setAuthToken] = useState(null);
   const [authError, setAuthError] = useState(null);
   const [tokenStatus, setTokenStatus] = useState('checking');
+  const [currentPage, setCurrentPage] = useState('dashboard');
+  
+  // AI Assistant states
+  const [showChatbot, setShowChatbot] = useState(false);
+  const [messages, setMessages] = useState([
+    {
+      id: 1,
+      text: "Hello! I'm your Executive Assistant. I can help you with:\n\n• Checking quote status and pipeline data\n• Analyzing sales metrics\n• Providing insights on opportunities\n• Answering questions about your fencing business\n\nHow can I assist you today?",
+      sender: 'assistant',
+      timestamp: new Date()
+    }
+  ]);
+  const [inputMessage, setInputMessage] = useState('');
+  const [chatLoading, setChatLoading] = useState(false);
 
   // Check for auth token and handle persistence
   useEffect(() => {
@@ -200,6 +214,61 @@ export default function MobileDashboardPersistent() {
     setTokenStatus('missing');
   };
 
+  const handleSendMessage = async () => {
+    if (!inputMessage.trim()) return;
+
+    const userMessage = {
+      id: Date.now(),
+      text: inputMessage,
+      sender: 'user',
+      timestamp: new Date()
+    };
+
+    setMessages(prev => [...prev, userMessage]);
+    setInputMessage('');
+    setChatLoading(true);
+
+    try {
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: inputMessage,
+          context: {
+            activeQuotes,
+            quotesPending,
+            wonInvoices,
+            revenue
+          }
+        })
+      });
+
+      const data = await response.json();
+      
+      const assistantMessage = {
+        id: Date.now() + 1,
+        text: data.response || "I'm sorry, I couldn't process your request. Please try again.",
+        sender: 'assistant',
+        timestamp: new Date()
+      };
+
+      setMessages(prev => [...prev, assistantMessage]);
+    } catch (error) {
+      console.error('Error sending message:', error);
+      const errorMessage = {
+        id: Date.now() + 1,
+        text: "I'm sorry, there was an error processing your request. Please try again.",
+        sender: 'assistant',
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, errorMessage]);
+    } finally {
+      setChatLoading(false);
+    }
+  };
+
   const formatNumber = (num) => {
     return num.toLocaleString();
   };
@@ -262,37 +331,76 @@ export default function MobileDashboardPersistent() {
     <div style={{ 
       minHeight: '100vh', 
       backgroundColor: '#f8fafc',
-      fontFamily: 'Arial, sans-serif'
+      fontFamily: 'Arial, sans-serif',
+      display: 'flex'
     }}>
       <Head>
         <title>Mobile Dashboard - Fencing Assistant</title>
       </Head>
       
-      {/* Header */}
+      {/* Sidebar */}
       <div style={{
+        width: '250px',
         backgroundColor: 'white',
-        padding: '16px 20px',
-        borderBottom: '1px solid #e5e7eb',
-        boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)'
+        borderRight: '1px solid #e5e7eb',
+        padding: '20px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '12px'
       }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>
-            <h1 style={{ 
-              fontSize: '24px', 
-              fontWeight: 'bold', 
-              color: '#111827',
-              margin: 0
-            }}>
-              Fencing Assistant
-            </h1>
-            <p style={{ 
-              fontSize: '14px', 
-              color: '#6b7280', 
-              margin: '4px 0 0 0'
-            }}>
-              Mobile Dashboard
-            </p>
-          </div>
+        <div style={{ marginBottom: '20px' }}>
+          <h2 style={{ 
+            fontSize: '20px', 
+            fontWeight: 'bold', 
+            color: '#111827',
+            margin: '0 0 8px 0'
+          }}>
+            Fencing Assistant
+          </h2>
+          <p style={{ 
+            fontSize: '14px', 
+            color: '#6b7280',
+            margin: 0
+          }}>
+            Mobile Dashboard
+          </p>
+        </div>
+
+        <button
+          onClick={() => setCurrentPage('dashboard')}
+          style={{
+            padding: '12px 16px',
+            backgroundColor: currentPage === 'dashboard' ? '#3b82f6' : 'transparent',
+            color: currentPage === 'dashboard' ? 'white' : '#6b7280',
+            border: 'none',
+            borderRadius: '8px',
+            cursor: 'pointer',
+            textAlign: 'left',
+            fontSize: '16px',
+            fontWeight: currentPage === 'dashboard' ? '600' : '400'
+          }}
+        >
+          📊 Dashboard
+        </button>
+
+        <button
+          onClick={() => setCurrentPage('ai-assistant')}
+          style={{
+            padding: '12px 16px',
+            backgroundColor: currentPage === 'ai-assistant' ? '#3b82f6' : 'transparent',
+            color: currentPage === 'ai-assistant' ? 'white' : '#6b7280',
+            border: 'none',
+            borderRadius: '8px',
+            cursor: 'pointer',
+            textAlign: 'left',
+            fontSize: '16px',
+            fontWeight: currentPage === 'ai-assistant' ? '600' : '400'
+          }}
+        >
+          🤖 AI Assistant
+        </button>
+
+        <div style={{ marginTop: 'auto' }}>
           <button
             onClick={clearToken}
             style={{
@@ -302,7 +410,8 @@ export default function MobileDashboardPersistent() {
               border: 'none',
               borderRadius: '6px',
               fontSize: '12px',
-              cursor: 'pointer'
+              cursor: 'pointer',
+              width: '100%'
             }}
           >
             Logout
@@ -310,161 +419,298 @@ export default function MobileDashboardPersistent() {
         </div>
       </div>
 
-      {/* Metrics Cards */}
-      <div style={{ padding: '20px' }}>
-        <div style={{ 
-          display: 'grid', 
-          gridTemplateColumns: 'repeat(2, 1fr)', 
-          gap: '16px',
-          marginBottom: '20px'
-        }}>
-          {/* Active Quotes */}
-          <div style={{
-            backgroundColor: 'white',
-            borderRadius: '12px',
-            padding: '20px',
-            boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
-            border: '1px solid #e5e7eb'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', marginBottom: '12px' }}>
-              <div style={{
-                width: '40px',
-                height: '40px',
-                backgroundColor: '#3b82f6',
-                borderRadius: '8px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                marginRight: '12px'
+      {/* Main Content */}
+      <div style={{ flex: 1 }}>
+        {currentPage === 'dashboard' ? (
+          <>
+            {/* Header */}
+            <div style={{
+              backgroundColor: 'white',
+              padding: '16px 20px',
+              borderBottom: '1px solid #e5e7eb',
+              boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)'
+            }}>
+              <h1 style={{ 
+                fontSize: '24px', 
+                fontWeight: 'bold', 
+                color: '#111827',
+                margin: 0
               }}>
-                <span style={{ color: 'white', fontSize: '20px' }}>📊</span>
+                Dashboard
+              </h1>
+            </div>
+
+            {/* Metrics Cards */}
+            <div style={{ padding: '20px' }}>
+              <div style={{ 
+                display: 'grid', 
+                gridTemplateColumns: 'repeat(2, 1fr)', 
+                gap: '16px',
+                marginBottom: '20px'
+              }}>
+                {/* Active Quotes */}
+                <div style={{
+                  backgroundColor: 'white',
+                  borderRadius: '12px',
+                  padding: '20px',
+                  boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
+                  border: '1px solid #e5e7eb'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', marginBottom: '12px' }}>
+                    <div style={{
+                      width: '40px',
+                      height: '40px',
+                      backgroundColor: '#3b82f6',
+                      borderRadius: '8px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      marginRight: '12px'
+                    }}>
+                      <span style={{ color: 'white', fontSize: '20px' }}>📊</span>
+                    </div>
+                    <div>
+                      <h3 style={{ fontSize: '24px', fontWeight: 'bold', color: '#111827', margin: 0 }}>
+                        {metricsLoading ? '...' : formatNumber(activeQuotes)}
+                      </h3>
+                      <p style={{ fontSize: '14px', color: '#6b7280', margin: '4px 0 0 0' }}>
+                        Active Quotes
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Quotes Pending */}
+                <div style={{
+                  backgroundColor: 'white',
+                  borderRadius: '12px',
+                  padding: '20px',
+                  boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
+                  border: '1px solid #e5e7eb'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', marginBottom: '12px' }}>
+                    <div style={{
+                      width: '40px',
+                      height: '40px',
+                      backgroundColor: '#eab308',
+                      borderRadius: '8px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      marginRight: '12px'
+                    }}>
+                      <span style={{ color: 'white', fontSize: '20px' }}>⏳</span>
+                    </div>
+                    <div>
+                      <h3 style={{ fontSize: '24px', fontWeight: 'bold', color: '#111827', margin: 0 }}>
+                        {metricsLoading ? '...' : formatNumber(quotesPending)}
+                      </h3>
+                      <p style={{ fontSize: '14px', color: '#6b7280', margin: '4px 0 0 0' }}>
+                        Quotes Pending
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Won Invoices */}
+                <div style={{
+                  backgroundColor: 'white',
+                  borderRadius: '12px',
+                  padding: '20px',
+                  boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
+                  border: '1px solid #e5e7eb'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', marginBottom: '12px' }}>
+                    <div style={{
+                      width: '40px',
+                      height: '40px',
+                      backgroundColor: '#10b981',
+                      borderRadius: '8px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      marginRight: '12px'
+                    }}>
+                      <span style={{ color: 'white', fontSize: '20px' }}>✅</span>
+                    </div>
+                    <div>
+                      <h3 style={{ fontSize: '24px', fontWeight: 'bold', color: '#111827', margin: 0 }}>
+                        {metricsLoading ? '...' : formatNumber(wonInvoices)}
+                      </h3>
+                      <p style={{ fontSize: '14px', color: '#6b7280', margin: '4px 0 0 0' }}>
+                        Won Invoices
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Revenue */}
+                <div style={{
+                  backgroundColor: 'white',
+                  borderRadius: '12px',
+                  padding: '20px',
+                  boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
+                  border: '1px solid #e5e7eb'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', marginBottom: '12px' }}>
+                    <div style={{
+                      width: '40px',
+                      height: '40px',
+                      backgroundColor: '#8b5cf6',
+                      borderRadius: '8px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      marginRight: '12px'
+                    }}>
+                      <span style={{ color: 'white', fontSize: '20px' }}>💰</span>
+                    </div>
+                    <div>
+                      <h3 style={{ fontSize: '24px', fontWeight: 'bold', color: '#111827', margin: 0 }}>
+                        {metricsLoading ? '...' : formatCurrency(revenue)}
+                      </h3>
+                      <p style={{ fontSize: '14px', color: '#6b7280', margin: '4px 0 0 0' }}>
+                        Revenue
+                      </p>
+                    </div>
+                  </div>
+                </div>
               </div>
-              <div>
-                <h3 style={{ fontSize: '24px', fontWeight: 'bold', color: '#111827', margin: 0 }}>
-                  {metricsLoading ? '...' : formatNumber(activeQuotes)}
-                </h3>
-                <p style={{ fontSize: '14px', color: '#6b7280', margin: '4px 0 0 0' }}>
-                  Active Quotes
+
+              {metricsLoading && (
+                <div style={{ textAlign: 'center', padding: '20px' }}>
+                  <p style={{ color: '#6b7280' }}>Loading metrics...</p>
+                </div>
+              )}
+
+              <div style={{ 
+                marginTop: '20px', 
+                padding: '16px', 
+                backgroundColor: '#d1fae5', 
+                borderRadius: '8px',
+                border: '1px solid #10b981'
+              }}>
+                <h4 style={{ color: '#065f46', margin: '0 0 8px 0' }}>✅ Persistent Authentication</h4>
+                <p style={{ color: '#065f46', fontSize: '14px', margin: 0 }}>
+                  Your token is saved and will work automatically. No need to repeat the setup process!
                 </p>
               </div>
             </div>
-          </div>
-
-          {/* Quotes Pending */}
-          <div style={{
-            backgroundColor: 'white',
-            borderRadius: '12px',
-            padding: '20px',
-            boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
-            border: '1px solid #e5e7eb'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', marginBottom: '12px' }}>
-              <div style={{
-                width: '40px',
-                height: '40px',
-                backgroundColor: '#eab308',
-                borderRadius: '8px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                marginRight: '12px'
+          </>
+        ) : (
+          <>
+            {/* AI Assistant Header */}
+            <div style={{
+              backgroundColor: 'white',
+              padding: '16px 20px',
+              borderBottom: '1px solid #e5e7eb',
+              boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)'
+            }}>
+              <h1 style={{ 
+                fontSize: '24px', 
+                fontWeight: 'bold', 
+                color: '#111827',
+                margin: 0
               }}>
-                <span style={{ color: 'white', fontSize: '20px' }}>⏳</span>
+                AI Assistant
+              </h1>
+            </div>
+
+            {/* Chat Interface */}
+            <div style={{ 
+              height: 'calc(100vh - 80px)',
+              display: 'flex',
+              flexDirection: 'column'
+            }}>
+              {/* Messages */}
+              <div style={{
+                flex: 1,
+                padding: '20px',
+                overflowY: 'auto',
+                backgroundColor: '#f8fafc'
+              }}>
+                {messages.map((message) => (
+                  <div
+                    key={message.id}
+                    style={{
+                      marginBottom: '16px',
+                      display: 'flex',
+                      justifyContent: message.sender === 'user' ? 'flex-end' : 'flex-start'
+                    }}
+                  >
+                    <div style={{
+                      maxWidth: '70%',
+                      padding: '12px 16px',
+                      borderRadius: '12px',
+                      backgroundColor: message.sender === 'user' ? '#3b82f6' : 'white',
+                      color: message.sender === 'user' ? 'white' : '#111827',
+                      boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
+                      border: message.sender === 'assistant' ? '1px solid #e5e7eb' : 'none'
+                    }}>
+                      <p style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{message.text}</p>
+                    </div>
+                  </div>
+                ))}
+                {chatLoading && (
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'flex-start',
+                    marginBottom: '16px'
+                  }}>
+                    <div style={{
+                      padding: '12px 16px',
+                      borderRadius: '12px',
+                      backgroundColor: 'white',
+                      boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
+                      border: '1px solid #e5e7eb'
+                    }}>
+                      <p style={{ margin: 0, color: '#6b7280' }}>AI is thinking...</p>
+                    </div>
+                  </div>
+                )}
               </div>
-              <div>
-                <h3 style={{ fontSize: '24px', fontWeight: 'bold', color: '#111827', margin: 0 }}>
-                  {metricsLoading ? '...' : formatNumber(quotesPending)}
-                </h3>
-                <p style={{ fontSize: '14px', color: '#6b7280', margin: '4px 0 0 0' }}>
-                  Quotes Pending
-                </p>
+
+              {/* Input */}
+              <div style={{
+                padding: '20px',
+                backgroundColor: 'white',
+                borderTop: '1px solid #e5e7eb'
+              }}>
+                <div style={{ display: 'flex', gap: '12px' }}>
+                  <input
+                    type="text"
+                    value={inputMessage}
+                    onChange={(e) => setInputMessage(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                    placeholder="Ask me anything about your fencing business..."
+                    style={{
+                      flex: 1,
+                      padding: '12px 16px',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '8px',
+                      fontSize: '16px'
+                    }}
+                  />
+                  <button
+                    onClick={handleSendMessage}
+                    disabled={!inputMessage.trim() || chatLoading}
+                    style={{
+                      padding: '12px 20px',
+                      backgroundColor: inputMessage.trim() && !chatLoading ? '#3b82f6' : '#9ca3af',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '8px',
+                      cursor: inputMessage.trim() && !chatLoading ? 'pointer' : 'not-allowed',
+                      fontSize: '16px'
+                    }}
+                  >
+                    Send
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
-
-          {/* Won Invoices */}
-          <div style={{
-            backgroundColor: 'white',
-            borderRadius: '12px',
-            padding: '20px',
-            boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
-            border: '1px solid #e5e7eb'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', marginBottom: '12px' }}>
-              <div style={{
-                width: '40px',
-                height: '40px',
-                backgroundColor: '#10b981',
-                borderRadius: '8px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                marginRight: '12px'
-              }}>
-                <span style={{ color: 'white', fontSize: '20px' }}>✅</span>
-              </div>
-              <div>
-                <h3 style={{ fontSize: '24px', fontWeight: 'bold', color: '#111827', margin: 0 }}>
-                  {metricsLoading ? '...' : formatNumber(wonInvoices)}
-                </h3>
-                <p style={{ fontSize: '14px', color: '#6b7280', margin: '4px 0 0 0' }}>
-                  Won Invoices
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Revenue */}
-          <div style={{
-            backgroundColor: 'white',
-            borderRadius: '12px',
-            padding: '20px',
-            boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
-            border: '1px solid #e5e7eb'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', marginBottom: '12px' }}>
-              <div style={{
-                width: '40px',
-                height: '40px',
-                backgroundColor: '#8b5cf6',
-                borderRadius: '8px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                marginRight: '12px'
-              }}>
-                <span style={{ color: 'white', fontSize: '20px' }}>💰</span>
-              </div>
-              <div>
-                <h3 style={{ fontSize: '24px', fontWeight: 'bold', color: '#111827', margin: 0 }}>
-                  {metricsLoading ? '...' : formatCurrency(revenue)}
-                </h3>
-                <p style={{ fontSize: '14px', color: '#6b7280', margin: '4px 0 0 0' }}>
-                  Revenue
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {metricsLoading && (
-          <div style={{ textAlign: 'center', padding: '20px' }}>
-            <p style={{ color: '#6b7280' }}>Loading metrics...</p>
-          </div>
+          </>
         )}
-
-        <div style={{ 
-          marginTop: '20px', 
-          padding: '16px', 
-          backgroundColor: '#d1fae5', 
-          borderRadius: '8px',
-          border: '1px solid #10b981'
-        }}>
-          <h4 style={{ color: '#065f46', margin: '0 0 8px 0' }}>✅ Persistent Authentication</h4>
-          <p style={{ color: '#065f46', fontSize: '14px', margin: 0 }}>
-            Your token is saved and will work automatically. No need to repeat the setup process!
-          </p>
-        </div>
       </div>
     </div>
   );
