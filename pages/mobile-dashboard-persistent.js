@@ -39,17 +39,21 @@ export default function MobileDashboardPersistent() {
         token = tokenFromUrl;
         localStorage.setItem('ghl_access_token', token);
         console.log('📱 Token received from URL and saved');
+        console.log('📱 Token length:', token.length);
       } else {
         // 2. Check localStorage (for returning users)
         token = localStorage.getItem('ghl_access_token');
         if (token) {
           console.log('📱 Token found in localStorage');
+          console.log('📱 Token length:', token.length);
+        } else {
+          console.log('📱 No token found in localStorage');
         }
       }
       
       if (token) {
         setAuthToken(token);
-        setTokenStatus('valid');
+        setTokenStatus('checking');
         // Test the token
         testToken(token);
       } else {
@@ -60,6 +64,7 @@ export default function MobileDashboardPersistent() {
   }, []);
 
   const testToken = async (token) => {
+    console.log('🔐 Testing token...');
     try {
       const response = await fetch('/api/ghl/auto-refresh-token', {
         headers: {
@@ -67,7 +72,10 @@ export default function MobileDashboardPersistent() {
         }
       });
       
+      console.log('🔐 Token test response status:', response.status);
+      
       const data = await response.json();
+      console.log('🔐 Token test response:', data);
       
       if (data.success) {
         if (data.needsRefresh) {
@@ -77,13 +85,15 @@ export default function MobileDashboardPersistent() {
           console.log('🔄 Token refreshed automatically');
         }
         setTokenStatus('valid');
-        fetchMetrics(data.token);
+        console.log('✅ Token is valid, fetching metrics...');
+        fetchMetrics(data.token || token);
       } else {
+        console.log('❌ Token test failed:', data);
         setAuthError('Token is invalid. Please re-authenticate.');
         setTokenStatus('invalid');
       }
     } catch (error) {
-      console.error('Token test failed:', error);
+      console.error('❌ Token test error:', error);
       setAuthError('Token validation failed. Please re-authenticate.');
       setTokenStatus('invalid');
     }
@@ -308,20 +318,45 @@ export default function MobileDashboardPersistent() {
           <p style={{ color: '#7f1d1d', fontSize: '14px', marginBottom: '20px' }}>
             Visit the token transfer tool to get your authentication token.
           </p>
-          <a 
-            href="/mobile-token"
-            style={{
-              display: 'inline-block',
-              padding: '12px 24px',
-              backgroundColor: '#3b82f6',
-              color: 'white',
-              textDecoration: 'none',
-              borderRadius: '8px',
-              fontWeight: 'bold'
-            }}
-          >
-            Get Token
-          </a>
+          
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <a 
+              href="/mobile-token"
+              style={{
+                display: 'inline-block',
+                padding: '12px 24px',
+                backgroundColor: '#3b82f6',
+                color: 'white',
+                textDecoration: 'none',
+                borderRadius: '8px',
+                fontWeight: 'bold'
+              }}
+            >
+              Get Token
+            </a>
+            
+            {authToken && (
+              <button
+                onClick={() => {
+                  console.log('🔄 Skipping token test, proceeding with stored token...');
+                  setTokenStatus('valid');
+                  setAuthError(null);
+                  fetchMetrics();
+                }}
+                style={{
+                  padding: '12px 24px',
+                  backgroundColor: '#10b981',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontWeight: 'bold',
+                  cursor: 'pointer'
+                }}
+              >
+                Skip Token Test & Continue
+              </button>
+            )}
+          </div>
         </div>
       </div>
     );
