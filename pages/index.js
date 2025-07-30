@@ -83,20 +83,6 @@ export default function Home() {
     console.log('📱 Is Mobile:', /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent));
     
     try {
-      // Test mobile auth first
-      console.log('🔐 Testing mobile authentication...');
-      const authTestResponse = await fetch('/api/ghl/test-mobile-auth', {
-        credentials: 'include'
-      });
-      const authTestData = await authTestResponse.json();
-      console.log('🔐 Auth test result:', authTestData);
-      
-      if (!authTestData.success) {
-        console.error('❌ Mobile auth failed:', authTestData);
-        setMetricsLoading(false);
-        return;
-      }
-
       // Fetch Active Quotes
       console.log('📊 Fetching Active Quotes...');
       const activeQuotesResponse = await fetch('/api/ghl/quote-sent-efficient', {

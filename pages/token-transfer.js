@@ -15,11 +15,21 @@ export default function TokenTransfer() {
       if (mobile) {
         // On mobile, try to get token from localStorage
         const storedToken = localStorage.getItem('ghl_access_token');
+        console.log('📱 Mobile detected, checking localStorage for token...');
+        console.log('📱 Stored token:', storedToken ? 'Found' : 'Not found');
+        
         if (storedToken) {
           setToken(storedToken);
           setMessage('✅ Token found in localStorage! You can now use the mobile dashboard.');
         } else {
           setMessage('❌ No token found. Please visit this page on desktop first to transfer your token.');
+        }
+      } else {
+        // On desktop, check if there's already a token
+        const storedToken = localStorage.getItem('ghl_access_token');
+        if (storedToken) {
+          setToken(storedToken);
+          setMessage('✅ Token already saved. You can visit this page on mobile now.');
         }
       }
     }
@@ -133,6 +143,14 @@ export default function TokenTransfer() {
           >
             Go to Mobile Dashboard
           </a>
+        </div>
+
+        <div style={{ marginTop: '20px', padding: '16px', backgroundColor: '#f3f4f6', borderRadius: '8px' }}>
+          <h4>Debug Info:</h4>
+          <p><strong>User Agent:</strong> {typeof window !== 'undefined' ? navigator.userAgent : 'Loading...'}</p>
+          <p><strong>localStorage Available:</strong> {typeof window !== 'undefined' && window.localStorage ? 'Yes' : 'No'}</p>
+          <p><strong>Token in localStorage:</strong> {typeof window !== 'undefined' ? (localStorage.getItem('ghl_access_token') ? 'Yes' : 'No') : 'Unknown'}</p>
+          <p><strong>localStorage Keys:</strong> {typeof window !== 'undefined' ? Object.keys(localStorage).join(', ') : 'Unknown'}</p>
         </div>
       </div>
     );
