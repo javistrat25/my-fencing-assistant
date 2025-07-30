@@ -32,6 +32,11 @@ export default function Home() {
   const [showQuotesPendingDetails, setShowQuotesPendingDetails] = useState(false);
   const [quotesPendingDetails, setQuotesPendingDetails] = useState([]);
   const [detailsLoading, setDetailsLoading] = useState(false);
+  
+  // Active Quotes detailed view states
+  const [showActiveQuotesDetails, setShowActiveQuotesDetails] = useState(false);
+  const [activeQuotesDetails, setActiveQuotesDetails] = useState([]);
+  const [activeQuotesDetailsLoading, setActiveQuotesDetailsLoading] = useState(false);
 
   // Fetch metrics on component mount
   useEffect(() => {
@@ -252,6 +257,32 @@ export default function Home() {
     }
   };
 
+  const handleActiveQuotesClick = async () => {
+    if (showActiveQuotesDetails) {
+      setShowActiveQuotesDetails(false);
+      return;
+    }
+
+    setActiveQuotesDetailsLoading(true);
+    try {
+      const response = await fetch('/api/ghl/quote-sent', {
+        credentials: 'include'
+      });
+      const data = await response.json();
+      
+      if (data.success && data.opportunities) {
+        setActiveQuotesDetails(data.opportunities);
+        setShowActiveQuotesDetails(true);
+      } else {
+        console.error('Failed to fetch active quotes details:', data.error);
+      }
+    } catch (error) {
+      console.error('Error fetching active quotes details:', error);
+    } finally {
+      setActiveQuotesDetailsLoading(false);
+    }
+  };
+
   if (currentPage === 'ai-assistant') {
     return (
       <div style={{ minHeight: '100vh', backgroundColor: '#f9fafb' }}>
@@ -381,13 +412,41 @@ export default function Home() {
           {/* Hero Metrics Cards */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px' }}>
             {/* Active Quotes */}
-            <div style={{ backgroundColor: 'white', borderRadius: '16px', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)', padding: '24px', borderLeft: '4px solid #3b82f6' }}>
+            <div 
+              onClick={handleActiveQuotesClick}
+              style={{ 
+                backgroundColor: 'white', 
+                borderRadius: '16px', 
+                boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)', 
+                padding: '24px', 
+                borderLeft: '4px solid #3b82f6',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                transform: showActiveQuotesDetails ? 'scale(1.02)' : 'scale(1)',
+                boxShadow: showActiveQuotesDetails 
+                  ? '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)' 
+                  : '0 10px 15px -3px rgba(0, 0, 0, 0.1)'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'scale(1.02)';
+                e.currentTarget.style.boxShadow = '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)';
+              }}
+              onMouseLeave={(e) => {
+                if (!showActiveQuotesDetails) {
+                  e.currentTarget.style.transform = 'scale(1)';
+                  e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.1)';
+                }
+              }}
+            >
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div>
                   <p style={{ fontSize: '36px', fontWeight: 'bold', color: '#111827', margin: 0 }}>
                     {metricsLoading ? '...' : formatNumber(activeQuotes)}
                   </p>
-                  <p style={{ fontSize: '14px', color: '#6b7280', margin: '4px 0 0 0' }}>Active Quotes</p>
+                  <p style={{ fontSize: '14px', color: '#6b7280', margin: '4px 0 0 0' }}>
+                    Active Quotes
+                    {activeQuotesDetailsLoading && <span style={{ marginLeft: '8px', color: '#3b82f6' }}>Loading...</span>}
+                  </p>
                 </div>
                 <div style={{ padding: '12px', backgroundColor: '#dbeafe', borderRadius: '12px' }}>
                   <svg width="32" height="32" fill="none" stroke="#3b82f6" viewBox="0 0 24 24">
@@ -542,6 +601,76 @@ export default function Home() {
               ) : (
                 <div style={{ textAlign: 'center', padding: '32px', color: '#6b7280' }}>
                   <p>No quotes pending details available</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Active Quotes Details */}
+          {showActiveQuotesDetails && (
+            <div style={{ 
+              marginTop: '24px', 
+              backgroundColor: 'white', 
+              borderRadius: '16px', 
+              boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)', 
+              padding: '24px',
+              border: '1px solid #e5e7eb'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
+                <h2 style={{ fontSize: '20px', fontWeight: 'bold', color: '#111827', margin: 0 }}>
+                  Active Quotes Details
+                </h2>
+                <button
+                  onClick={() => setShowActiveQuotesDetails(false)}
+                  style={{
+                    padding: '8px 12px',
+                    backgroundColor: '#f3f4f6',
+                    color: '#6b7280',
+                    borderRadius: '8px',
+                    border: 'none',
+                    cursor: 'pointer',
+                    fontSize: '14px'
+                  }}
+                >
+                  Close
+                </button>
+              </div>
+              
+              {activeQuotesDetails.length > 0 ? (
+                <div style={{ display: 'grid', gap: '12px' }}>
+                  {activeQuotesDetails.map((opportunity, index) => (
+                    <div 
+                      key={opportunity.id || index}
+                      style={{
+                        padding: '16px',
+                        backgroundColor: '#f9fafb',
+                        borderRadius: '12px',
+                        border: '1px solid #e5e7eb'
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        <div style={{ flex: 1 }}>
+                          <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#111827', margin: '0 0 4px 0' }}>
+                            {opportunity.contact?.name || opportunity.name || 'Unnamed Contact'}
+                          </h3>
+                          {opportunity.contact?.email && (
+                            <p style={{ fontSize: '14px', color: '#6b7280', margin: '4px 0' }}>
+                              <strong>Email:</strong> {opportunity.contact.email}
+                            </p>
+                          )}
+                          {opportunity.contact?.phone && (
+                            <p style={{ fontSize: '14px', color: '#6b7280', margin: '4px 0' }}>
+                              <strong>Phone:</strong> {opportunity.contact.phone}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div style={{ textAlign: 'center', padding: '32px', color: '#6b7280' }}>
+                  <p>No active quotes details available</p>
                 </div>
               )}
             </div>
