@@ -79,22 +79,44 @@ export default function Home() {
   const fetchMetrics = async () => {
     setMetricsLoading(true);
     console.log('🔄 Starting to fetch all metrics...');
+    console.log('📱 User Agent:', navigator.userAgent);
+    console.log('📱 Is Mobile:', /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent));
     
     try {
+      // Test mobile auth first
+      console.log('🔐 Testing mobile authentication...');
+      const authTestResponse = await fetch('/api/ghl/test-mobile-auth', {
+        credentials: 'include'
+      });
+      const authTestData = await authTestResponse.json();
+      console.log('🔐 Auth test result:', authTestData);
+      
+      if (!authTestData.success) {
+        console.error('❌ Mobile auth failed:', authTestData);
+        setMetricsLoading(false);
+        return;
+      }
+
       // Fetch Active Quotes
       console.log('📊 Fetching Active Quotes...');
       const activeQuotesResponse = await fetch('/api/ghl/quote-sent-efficient', {
         credentials: 'include'
       });
-      const activeQuotesData = await activeQuotesResponse.json();
-      console.log('📊 Active Quotes response:', activeQuotesData);
-      if (activeQuotesData.success && activeQuotesData.opportunities) {
-        const count = activeQuotesData.opportunities.length;
-        console.log('✅ Setting Active Quotes to:', count);
-        setActiveQuotes(count);
-      } else {
-        console.log('❌ Active Quotes failed or no data');
+      
+      if (!activeQuotesResponse.ok) {
+        console.error('❌ Active Quotes HTTP error:', activeQuotesResponse.status, activeQuotesResponse.statusText);
         setActiveQuotes(0);
+      } else {
+        const activeQuotesData = await activeQuotesResponse.json();
+        console.log('📊 Active Quotes response:', activeQuotesData);
+        if (activeQuotesData.success && activeQuotesData.opportunities) {
+          const count = activeQuotesData.opportunities.length;
+          console.log('✅ Setting Active Quotes to:', count);
+          setActiveQuotes(count);
+        } else {
+          console.log('❌ Active Quotes failed or no data');
+          setActiveQuotes(0);
+        }
       }
 
       // Fetch Quotes Pending
@@ -102,15 +124,21 @@ export default function Home() {
       const quotesPendingResponse = await fetch('/api/ghl/quote-pending-efficient', {
         credentials: 'include'
       });
-      const quotesPendingData = await quotesPendingResponse.json();
-      console.log('📊 Quotes Pending response:', quotesPendingData);
-      if (quotesPendingData.success && quotesPendingData.opportunities) {
-        const count = quotesPendingData.opportunities.length;
-        console.log('✅ Setting Quotes Pending to:', count);
-        setQuotesPending(count);
-      } else {
-        console.log('❌ Quotes Pending failed or no data');
+      
+      if (!quotesPendingResponse.ok) {
+        console.error('❌ Quotes Pending HTTP error:', quotesPendingResponse.status, quotesPendingResponse.statusText);
         setQuotesPending(0);
+      } else {
+        const quotesPendingData = await quotesPendingResponse.json();
+        console.log('📊 Quotes Pending response:', quotesPendingData);
+        if (quotesPendingData.success && quotesPendingData.opportunities) {
+          const count = quotesPendingData.opportunities.length;
+          console.log('✅ Setting Quotes Pending to:', count);
+          setQuotesPending(count);
+        } else {
+          console.log('❌ Quotes Pending failed or no data');
+          setQuotesPending(0);
+        }
       }
 
       // Fetch Won Invoices
@@ -118,15 +146,21 @@ export default function Home() {
       const wonInvoicesResponse = await fetch('/api/ghl/won-invoices', {
         credentials: 'include'
       });
-      const wonInvoicesData = await wonInvoicesResponse.json();
-      console.log('📊 Won Invoices response:', wonInvoicesData);
-      if (wonInvoicesData.success) {
-        const count = wonInvoicesData.total;
-        console.log('✅ Setting Won Invoices to:', count);
-        setWonInvoices(count);
-      } else {
-        console.log('❌ Won Invoices failed or no data');
+      
+      if (!wonInvoicesResponse.ok) {
+        console.error('❌ Won Invoices HTTP error:', wonInvoicesResponse.status, wonInvoicesResponse.statusText);
         setWonInvoices(0);
+      } else {
+        const wonInvoicesData = await wonInvoicesResponse.json();
+        console.log('📊 Won Invoices response:', wonInvoicesData);
+        if (wonInvoicesData.success) {
+          const count = wonInvoicesData.total;
+          console.log('✅ Setting Won Invoices to:', count);
+          setWonInvoices(count);
+        } else {
+          console.log('❌ Won Invoices failed or no data');
+          setWonInvoices(0);
+        }
       }
 
       // Fetch Revenue
@@ -134,19 +168,30 @@ export default function Home() {
       const revenueResponse = await fetch('/api/ghl/revenue', {
         credentials: 'include'
       });
-      const revenueData = await revenueResponse.json();
-      console.log('📊 Revenue response:', revenueData);
-      if (revenueData.success) {
-        const amount = revenueData.revenue;
-        console.log('✅ Setting Revenue to:', amount);
-        setRevenue(amount);
-      } else {
-        console.log('❌ Revenue failed or no data');
+      
+      if (!revenueResponse.ok) {
+        console.error('❌ Revenue HTTP error:', revenueResponse.status, revenueResponse.statusText);
         setRevenue(0);
+      } else {
+        const revenueData = await revenueResponse.json();
+        console.log('📊 Revenue response:', revenueData);
+        if (revenueData.success) {
+          const amount = revenueData.revenue;
+          console.log('✅ Setting Revenue to:', amount);
+          setRevenue(amount);
+        } else {
+          console.log('❌ Revenue failed or no data');
+          setRevenue(0);
+        }
       }
       
     } catch (error) {
       console.error('❌ Error fetching metrics:', error);
+      console.error('❌ Error details:', {
+        message: error.message,
+        stack: error.stack,
+        userAgent: navigator.userAgent
+      });
     }
     
     console.log('✅ Finished fetching metrics');
