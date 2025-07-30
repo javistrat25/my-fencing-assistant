@@ -87,7 +87,7 @@ export default function Home() {
     try {
       // Fetch Active Quotes
       console.log('📊 Fetching Active Quotes...');
-      const activeQuotesResponse = await fetch('/api/ghl/quote-sent', {
+      const activeQuotesResponse = await fetch('/api/ghl/quote-sent-efficient', {
         credentials: 'include'
       });
       const activeQuotesData = await activeQuotesResponse.json();
@@ -103,7 +103,7 @@ export default function Home() {
 
       // Fetch Quotes Pending
       console.log('📊 Fetching Quotes Pending...');
-      const quotesPendingResponse = await fetch('/api/ghl/quote-pending', {
+      const quotesPendingResponse = await fetch('/api/ghl/quote-pending-efficient', {
         credentials: 'include'
       });
       const quotesPendingData = await quotesPendingResponse.json();
@@ -239,7 +239,7 @@ export default function Home() {
 
     setDetailsLoading(true);
     try {
-      const response = await fetch('/api/ghl/quote-pending', {
+      const response = await fetch('/api/ghl/quote-pending-efficient', {
         credentials: 'include'
       });
       const data = await response.json();
@@ -265,7 +265,7 @@ export default function Home() {
 
     setActiveQuotesDetailsLoading(true);
     try {
-      const response = await fetch('/api/ghl/quote-sent', {
+      const response = await fetch('/api/ghl/quote-sent-efficient', {
         credentials: 'include'
       });
       const data = await response.json();
