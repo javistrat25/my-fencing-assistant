@@ -35,8 +35,8 @@ export default async function handler(req, res) {
   try {
     console.log('Fetching all contacts...');
     
-    // Get all contacts
-    const contactsResponse = await axios.get('https://services.leadconnectorhq.com/contacts/search', {
+    // Get all contacts using the correct endpoint
+    const contactsResponse = await axios.get('https://services.leadconnectorhq.com/contacts/', {
       headers: {
         'Authorization': `Bearer ${accessToken}`,
         'Content-Type': 'application/json',
