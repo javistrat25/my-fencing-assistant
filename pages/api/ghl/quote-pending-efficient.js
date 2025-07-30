@@ -36,63 +36,35 @@ export default async function handler(req, res) {
     console.log('Fetching quote pending opportunities with stage filtering...');
     
     const quotePendingStageId = "0fa7f486-3f87-4ba2-8daa-fe83d23ef7e5";
-    let allQuotePendingOpportunities = [];
-    let skip = 0;
-    const limit = 100;
-    let hasMore = true;
     
-    // Try to filter by stage ID directly in the API call
-    while (hasMore) {
-      console.log(`Fetching quote pending opportunities batch: skip=${skip}, limit=${limit}`);
-      
-      const opportunitiesResponse = await axios.get('https://services.leadconnectorhq.com/opportunities/search', {
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'Content-Type': 'application/json',
-          'Version': '2021-07-28'
-        },
-        params: {
-          location_id: 'hhgoXNHThJUYz4r3qS18',
-          limit: limit,
-          skip: skip,
-          // Try filtering by stage ID - this may or may not work depending on GHL API
-          pipeline_stage_id: quotePendingStageId
-        }
-      });
-      
-      const batchOpportunities = opportunitiesResponse.data.opportunities || [];
-      console.log(`Batch returned ${batchOpportunities.length} opportunities`);
-      
-      if (batchOpportunities.length === 0) {
-        hasMore = false;
-      } else {
-        allQuotePendingOpportunities = allQuotePendingOpportunities.concat(batchOpportunities);
-        skip += limit;
-        
-        // Safety check to prevent infinite loops
-        if (skip > 10000) {
-          console.log('Reached safety limit, stopping pagination');
-          hasMore = false;
-        }
+    // Fetch opportunities filtered by stage ID (no pagination)
+    const opportunitiesResponse = await axios.get('https://services.leadconnectorhq.com/opportunities/search', {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+        'Version': '2021-07-28'
+      },
+      params: {
+        location_id: 'hhgoXNHThJUYz4r3qS18',
+        limit: 1000, // Use a high limit to get all opportunities from this stage
+        pipeline_stage_id: quotePendingStageId
       }
-    }
+    });
     
-    console.log(`Total quote pending opportunities fetched: ${allQuotePendingOpportunities.length}`);
+    const quotePendingOpportunities = opportunitiesResponse.data.opportunities || [];
+    console.log(`Total quote pending opportunities fetched: ${quotePendingOpportunities.length}`);
     
     // Log all found opportunities for debugging
-    allQuotePendingOpportunities.forEach((opp, index) => {
+    quotePendingOpportunities.forEach((opp, index) => {
       console.log(`${index + 1}. ${opp.name} - Contact: ${opp.contact?.name || 'No contact'}`);
     });
 
     res.status(200).json({
       success: true,
-      opportunities: allQuotePendingOpportunities,
-      total: allQuotePendingOpportunities.length,
+      opportunities: quotePendingOpportunities,
+      total: quotePendingOpportunities.length,
       stageId: quotePendingStageId,
-      paginationInfo: {
-        totalBatches: Math.ceil(skip / limit),
-        totalFetched: allQuotePendingOpportunities.length
-      }
+      message: 'Filtered by pipeline_stage_id (no pagination)'
     });
     
   } catch (error) {
