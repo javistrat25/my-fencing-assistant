@@ -35,7 +35,7 @@ export default async function handler(req, res) {
   try {
     console.log('Fetching won invoices...');
     
-    // Get opportunities and filter for won/invoiced ones
+    // Get all opportunities
     const opportunitiesResponse = await axios.get('https://services.leadconnectorhq.com/opportunities/search', {
       headers: {
         'Authorization': `Bearer ${accessToken}`,
@@ -53,18 +53,29 @@ export default async function handler(req, res) {
     let opportunities = opportunitiesResponse.data.opportunities || [];
     console.log(`Found ${opportunities.length} total opportunities`);
     
-    // Filter for won/invoiced opportunities
-    // This will need to be updated with the correct stage IDs once we get them
+    // Updated stage ID mapping based on actual pipeline stages
+    const stageIdToName = {
+      "9de677cf-3448-43a8-ac75-9c3b912627fb": "First Contact",
+      "c263cf7d-72f4-4957-a337-c795c4feeef3": "First Contact by Rincon",
+      "3e480531-834d-4c7f-a6e4-7ffc08b96140": "Scheduled Visit",
+      "2a02ea5a-d040-4ff5-a29b-d5747ed3340b": "Won-Invoiced",
+      "08b2df08-94a2-4b26-b79d-4ab6cc8308c7": "Fabrication- In Progress",
+      "df57527e-fa1f-4d4d-b348-dbaad3201e9b": "Powder- In Progress",
+      "7219e696-269c-4865-bc38-c29b3e44b4aa": "Installing- In Progress",
+      "27e4efe6-42cd-4937-ad8d-118ab234d95f": "Finished- Pending Payment",
+      "1b494e0c-2833-4d04-8220-a5b23714a11c": "LOST client"
+    };
+    
+    // Filter for "Won-Invoiced" stage using the correct stage ID
+    const wonInvoicedStageId = "2a02ea5a-d040-4ff5-a29b-d5747ed3340b";
+    
     const wonInvoices = opportunities.filter(opportunity => {
-      const status = opportunity.status?.toLowerCase() || '';
-      const name = opportunity.name?.toLowerCase() || '';
+      const isWonInvoiced = opportunity.pipelineStageId === wonInvoicedStageId;
+      const stageName = stageIdToName[opportunity.pipelineStageId] || 'Unknown';
       
-      return status.includes('won') || 
-             status.includes('closed') ||
-             status.includes('completed') ||
-             name.includes('won') ||
-             name.includes('invoice') ||
-             name.includes('completed');
+      console.log(`Opportunity ${opportunity.name}: stageId=${opportunity.pipelineStageId}, stageName="${stageName}", isWonInvoiced=${isWonInvoiced}`);
+      
+      return isWonInvoiced;
     });
     
     console.log(`Found ${wonInvoices.length} won invoices out of ${opportunities.length} total`);
@@ -73,7 +84,9 @@ export default async function handler(req, res) {
       success: true,
       wonInvoices: wonInvoices,
       total: wonInvoices.length,
-      allOpportunities: opportunities.length
+      allOpportunities: opportunities.length,
+      stageMapping: stageIdToName,
+      wonInvoicedStageId: wonInvoicedStageId
     });
     
   } catch (error) {

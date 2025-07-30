@@ -23,14 +23,9 @@ export default async function handler(req, res) {
 
   // Parse cookies to get access token
   const cookies = parseCookies(req.headers.cookie);
-  console.log('Cookies received:', Object.keys(cookies));
   const accessToken = cookies.ghl_access_token;
-  console.log('Access token found:', !!accessToken);
-  
-  const locationId = 'hhgoXNHThJUYz4r3qS18';
 
   if (!accessToken) {
-    console.log('No access token available');
     return res.status(401).json({
       error: 'No access token available. Please authenticate via OAuth first.',
       message: 'Visit /api/auth to start the OAuth flow'
@@ -40,7 +35,7 @@ export default async function handler(req, res) {
   try {
     console.log('Fetching quote pending opportunities...');
     
-    // Simple single API call for now
+    // Get all opportunities
     const opportunitiesResponse = await axios.get('https://services.leadconnectorhq.com/opportunities/search', {
       headers: {
         'Authorization': `Bearer ${accessToken}`,
@@ -48,7 +43,7 @@ export default async function handler(req, res) {
         'Version': '2021-07-28'
       },
       params: {
-        location_id: locationId,
+        location_id: 'hhgoXNHThJUYz4r3qS18',
         limit: 100
       }
     });
@@ -58,82 +53,52 @@ export default async function handler(req, res) {
     let opportunities = opportunitiesResponse.data.opportunities || [];
     console.log(`Found ${opportunities.length} total opportunities`);
     
-    // Debug: Log first few opportunities to see their structure
-    console.log('Sample opportunities structure:');
-    opportunities.slice(0, 3).forEach((opp, index) => {
-      console.log(`Opportunity ${index + 1}:`, {
-        id: opp.id,
-        name: opp.name,
-        status: opp.status,
-        pipelineStageId: opp.pipelineStageId,
-        pipelineId: opp.pipelineId,
-        contact: opp.contact?.name || 'No contact',
-        // Log all available fields for debugging
-        allFields: Object.keys(opp)
-      });
-    });
-    
-    // Create a mapping from pipelineStageId to stage name
+    // Updated stage ID mapping based on actual pipeline stages
     const stageIdToName = {
-      // Hardcoded mapping based on known stage IDs
-      "0fa7f486-3f87-4ba2-8daa-fe83d23ef7e5": "Quote Pending",
-      "caae0892-7efb-4f5e-bcc6-07123c1cc463": "Quote Sent"
+      "9de677cf-3448-43a8-ac75-9c3b912627fb": "First Contact",
+      "c263cf7d-72f4-4957-a337-c795c4feeef3": "First Contact by Rincon",
+      "3e480531-834d-4c7f-a6e4-7ffc08b96140": "Scheduled Visit",
+      "2a02ea5a-d040-4ff5-a29b-d5747ed3340b": "Won-Invoiced",
+      "08b2df08-94a2-4b26-b79d-4ab6cc8308c7": "Fabrication- In Progress",
+      "df57527e-fa1f-4d4d-b348-dbaad3201e9b": "Powder- In Progress",
+      "7219e696-269c-4865-bc38-c29b3e44b4aa": "Installing- In Progress",
+      "27e4efe6-42cd-4937-ad8d-118ab234d95f": "Finished- Pending Payment",
+      "1b494e0c-2833-4d04-8220-a5b23714a11c": "LOST client"
     };
     
     console.log('Stage ID to name mapping:', stageIdToName);
-    console.log('Available stage IDs:', Object.keys(stageIdToName));
     
     // Get unique stage IDs from opportunities
     const opportunityStageIds = [...new Set(opportunities.map(opp => opp.pipelineStageId))];
     console.log('Opportunity stage IDs:', opportunityStageIds);
     
-    // Check which stage IDs we have mappings for
-    const mappedStageIds = opportunityStageIds.filter(id => stageIdToName[id]);
-    const unmappedStageIds = opportunityStageIds.filter(id => !stageIdToName[id]);
-    console.log('Mapped stage IDs:', mappedStageIds);
-    console.log('Unmapped stage IDs:', unmappedStageIds);
-    
-    // Filter for "Quote Pending" stage using the mapping
+    // For "Quote Pending" - we'll look for opportunities that might be ready for quotes
+    // Since there's no specific "Quote Pending" stage, let's look for early stage opportunities
     let quotePendingOpportunities = opportunities.filter(opportunity => {
       const stageId = opportunity.pipelineStageId;
       const stageName = stageIdToName[stageId] || '';
-      const isQuotePending = stageName.toLowerCase() === 'quote pending';
+      
+      // Look for stages that might indicate quotes are pending
+      // This is a best guess based on the pipeline stages available
+      const isQuotePending = stageName.toLowerCase().includes('first contact') ||
+                           stageName.toLowerCase().includes('scheduled visit');
       
       console.log(`Opportunity ${opportunity.name}: stageId=${stageId}, stageName="${stageName}", isQuotePending=${isQuotePending}`);
       
       return isQuotePending;
     });
     
-    // If no opportunities found and we have unmapped stage IDs, try a fallback approach
-    if (quotePendingOpportunities.length === 0 && unmappedStageIds.length > 0) {
-      console.log('No opportunities found with pipeline stages mapping. Trying fallback approach...');
-      
-      // Try to find opportunities that might be in "Quote Pending" stage by looking at other fields
-      // This is a fallback in case the pipeline stages API doesn't work
-      quotePendingOpportunities = opportunities.filter(opportunity => {
-        // Look for any field that might contain stage information
-        const opportunityString = JSON.stringify(opportunity).toLowerCase();
-        const hasQuotePending = opportunityString.includes('quote pending') || 
-                               opportunityString.includes('quoted pending') ||
-                               opportunityString.includes('pending quote');
-        
-        console.log(`Opportunity ${opportunity.name}: fallback check - hasQuotePending=${hasQuotePending}`);
-        
-        return hasQuotePending;
-      });
-    }
-    
-    console.log('Found', quotePendingOpportunities.length, 'quote pending opportunities out of', opportunities.length, 'total');
+    console.log(`Found ${quotePendingOpportunities.length} quote pending opportunities out of ${opportunities.length} total`);
 
     res.status(200).json({
       success: true,
       opportunities: quotePendingOpportunities,
-      rawOpportunities: opportunities, // TEMP: Return raw data for debugging
-      totalOpportunities: opportunities.length,
-      filteredCount: quotePendingOpportunities.length,
-      pipelineStages: [], // TEMP: Return pipeline stages for debugging
-      stageIdToName: stageIdToName // TEMP: Return mapping for debugging
+      total: quotePendingOpportunities.length,
+      allOpportunities: opportunities.length,
+      stageMapping: stageIdToName,
+      availableStages: opportunityStageIds
     });
+    
   } catch (error) {
     console.error('Error fetching quote pending opportunities:', error.response?.data || error.message);
     

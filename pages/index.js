@@ -52,10 +52,10 @@ export default function Home() {
         });
         setRealtimeQuoteSent(update.quoteSent);
         setRealtimeQuotePending(update.quotePending);
-        // Also update the regular states for consistency
-        console.log('✅ Updating states from real-time data');
-        setActiveQuotes(update.quoteSent);
-        setQuotesPending(update.quotePending);
+        // TEMPORARILY DISABLED: Don't overwrite the API data with real-time data
+        // console.log('✅ Updating states from real-time data');
+        // setActiveQuotes(update.quoteSent);
+        // setQuotesPending(update.quotePending);
       }
     };
     
