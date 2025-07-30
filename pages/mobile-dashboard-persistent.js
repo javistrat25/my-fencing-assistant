@@ -13,6 +13,12 @@ export default function MobileDashboardPersistent() {
   const [currentPage, setCurrentPage] = useState('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   
+  // Detailed view states
+  const [showDetails, setShowDetails] = useState(false);
+  const [detailsData, setDetailsData] = useState([]);
+  const [detailsLoading, setDetailsLoading] = useState(false);
+  const [activeCard, setActiveCard] = useState(null); // 'quotes-pending' or 'active-quotes'
+  
   // AI Assistant states
   const [showChatbot, setShowChatbot] = useState(false);
   const [messages, setMessages] = useState([
@@ -223,6 +229,66 @@ export default function MobileDashboardPersistent() {
     setAuthToken(null);
     setAuthError('Token cleared. Please re-authenticate.');
     setTokenStatus('missing');
+  };
+
+  const handleQuotesPendingClick = async () => {
+    if (showDetails && activeCard === 'quotes-pending') {
+      setShowDetails(false);
+      setActiveCard(null);
+      return;
+    }
+
+    setActiveCard('quotes-pending');
+    setShowDetails(true);
+    setDetailsLoading(true);
+    try {
+      const response = await fetch(`/api/ghl/quote-pending-efficient?token=${authToken}`, {
+        headers: {
+          'Authorization': `Bearer ${authToken}`
+        }
+      });
+      const data = await response.json();
+      
+      if (data.success && data.opportunities) {
+        setDetailsData(data.opportunities);
+      } else {
+        console.error('Failed to fetch quotes pending details:', data.error);
+      }
+    } catch (error) {
+      console.error('Error fetching quotes pending details:', error);
+    } finally {
+      setDetailsLoading(false);
+    }
+  };
+
+  const handleActiveQuotesClick = async () => {
+    if (showDetails && activeCard === 'active-quotes') {
+      setShowDetails(false);
+      setActiveCard(null);
+      return;
+    }
+
+    setActiveCard('active-quotes');
+    setShowDetails(true);
+    setDetailsLoading(true);
+    try {
+      const response = await fetch(`/api/ghl/quote-sent-efficient?token=${authToken}`, {
+        headers: {
+          'Authorization': `Bearer ${authToken}`
+        }
+      });
+      const data = await response.json();
+      
+      if (data.success && data.opportunities) {
+        setDetailsData(data.opportunities);
+      } else {
+        console.error('Failed to fetch active quotes details:', data.error);
+      }
+    } catch (error) {
+      console.error('Error fetching active quotes details:', error);
+    } finally {
+      setDetailsLoading(false);
+    }
   };
 
   const handleSendMessage = async () => {
@@ -565,13 +631,34 @@ export default function MobileDashboardPersistent() {
                 marginBottom: '20px'
               }}>
                 {/* Active Quotes */}
-                <div style={{
-                  backgroundColor: 'white',
-                  borderRadius: '12px',
-                  padding: '20px',
-                  boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
-                  border: '1px solid #e5e7eb'
-                }}>
+                <div 
+                  onClick={handleActiveQuotesClick}
+                  style={{
+                    backgroundColor: 'white',
+                    borderRadius: '12px',
+                    padding: '20px',
+                    boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
+                    border: '1px solid #e5e7eb',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                    transform: showDetails && activeCard === 'active-quotes' ? 'scale(1.02)' : 'scale(1)',
+                    boxShadow: showDetails && activeCard === 'active-quotes' 
+                      ? '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)' 
+                      : '0 1px 3px 0 rgba(0, 0, 0, 0.1)'
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!showDetails || activeCard !== 'active-quotes') {
+                      e.currentTarget.style.transform = 'scale(1.02)';
+                      e.currentTarget.style.boxShadow = '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!showDetails || activeCard !== 'active-quotes') {
+                      e.currentTarget.style.transform = 'scale(1)';
+                      e.currentTarget.style.boxShadow = '0 1px 3px 0 rgba(0, 0, 0, 0.1)';
+                    }
+                  }}
+                >
                   <div style={{ display: 'flex', alignItems: 'center', marginBottom: '12px' }}>
                     <div style={{
                       width: '40px',
@@ -591,19 +678,41 @@ export default function MobileDashboardPersistent() {
                       </h3>
                       <p style={{ fontSize: '14px', color: '#6b7280', margin: '4px 0 0 0' }}>
                         Active Quotes
+                        {detailsLoading && activeCard === 'active-quotes' && <span style={{ marginLeft: '8px', color: '#3b82f6' }}>Loading...</span>}
                       </p>
                     </div>
                   </div>
                 </div>
 
                 {/* Quotes Pending */}
-                <div style={{
-                  backgroundColor: 'white',
-                  borderRadius: '12px',
-                  padding: '20px',
-                  boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
-                  border: '1px solid #e5e7eb'
-                }}>
+                <div 
+                  onClick={handleQuotesPendingClick}
+                  style={{
+                    backgroundColor: 'white',
+                    borderRadius: '12px',
+                    padding: '20px',
+                    boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
+                    border: '1px solid #e5e7eb',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                    transform: showDetails && activeCard === 'quotes-pending' ? 'scale(1.02)' : 'scale(1)',
+                    boxShadow: showDetails && activeCard === 'quotes-pending' 
+                      ? '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)' 
+                      : '0 1px 3px 0 rgba(0, 0, 0, 0.1)'
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!showDetails || activeCard !== 'quotes-pending') {
+                      e.currentTarget.style.transform = 'scale(1.02)';
+                      e.currentTarget.style.boxShadow = '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!showDetails || activeCard !== 'quotes-pending') {
+                      e.currentTarget.style.transform = 'scale(1)';
+                      e.currentTarget.style.boxShadow = '0 1px 3px 0 rgba(0, 0, 0, 0.1)';
+                    }
+                  }}
+                >
                   <div style={{ display: 'flex', alignItems: 'center', marginBottom: '12px' }}>
                     <div style={{
                       width: '40px',
@@ -623,6 +732,7 @@ export default function MobileDashboardPersistent() {
                       </h3>
                       <p style={{ fontSize: '14px', color: '#6b7280', margin: '4px 0 0 0' }}>
                         Quotes Pending
+                        {detailsLoading && activeCard === 'quotes-pending' && <span style={{ marginLeft: '8px', color: '#eab308' }}>Loading...</span>}
                       </p>
                     </div>
                   </div>
@@ -711,6 +821,83 @@ export default function MobileDashboardPersistent() {
                   Your token is saved and will work automatically. No need to repeat the setup process!
                 </p>
               </div>
+
+              {/* Detailed View */}
+              {showDetails && (
+                <div style={{ 
+                  marginTop: '24px', 
+                  backgroundColor: 'white', 
+                  borderRadius: '16px', 
+                  boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)', 
+                  padding: '24px',
+                  border: '1px solid #e5e7eb'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
+                    <h2 style={{ fontSize: '20px', fontWeight: 'bold', color: '#111827', margin: 0 }}>
+                      {activeCard === 'quotes-pending' ? 'Quotes Pending Details' : 'Active Quotes Details'}
+                    </h2>
+                    <button
+                      onClick={() => {
+                        setShowDetails(false);
+                        setActiveCard(null);
+                      }}
+                      style={{
+                        padding: '8px 12px',
+                        backgroundColor: '#f3f4f6',
+                        color: '#6b7280',
+                        borderRadius: '8px',
+                        border: 'none',
+                        cursor: 'pointer',
+                        fontSize: '14px'
+                      }}
+                    >
+                      Close
+                    </button>
+                  </div>
+                  
+                  {detailsLoading ? (
+                    <div style={{ textAlign: 'center', padding: '32px', color: '#6b7280' }}>
+                      <p>Loading details...</p>
+                    </div>
+                  ) : detailsData.length > 0 ? (
+                    <div style={{ display: 'grid', gap: '12px' }}>
+                      {detailsData.map((opportunity, index) => (
+                        <div 
+                          key={opportunity.id || index}
+                          style={{
+                            padding: '16px',
+                            backgroundColor: '#f9fafb',
+                            borderRadius: '12px',
+                            border: '1px solid #e5e7eb'
+                          }}
+                        >
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                            <div style={{ flex: 1 }}>
+                              <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#111827', margin: '0 0 4px 0' }}>
+                                {opportunity.contact?.name || opportunity.name || 'Unnamed Contact'}
+                              </h3>
+                              {opportunity.contact?.email && (
+                                <p style={{ fontSize: '14px', color: '#6b7280', margin: '4px 0' }}>
+                                  <strong>Email:</strong> {opportunity.contact.email}
+                                </p>
+                              )}
+                              {opportunity.contact?.phone && (
+                                <p style={{ fontSize: '14px', color: '#6b7280', margin: '4px 0' }}>
+                                  <strong>Phone:</strong> {opportunity.contact.phone}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div style={{ textAlign: 'center', padding: '32px', color: '#6b7280' }}>
+                      <p>No {activeCard === 'quotes-pending' ? 'quotes pending' : 'active quotes'} details available</p>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </>
         ) : (
