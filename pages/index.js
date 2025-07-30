@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import Head from 'next/head';
-import Link from 'next/link';
 
 // Updated dashboard with modern design - v2
 export default function Home() {
@@ -190,24 +189,26 @@ export default function Home() {
 
   if (currentPage === 'ai-assistant') {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div style={{ minHeight: '100vh', backgroundColor: '#f9fafb' }}>
         <Head>
           <title>AI Assistant - Fencing Executive Assistant</title>
         </Head>
         
         {/* Navigation Sidebar */}
-        <div className="fixed left-0 top-0 h-full w-16 bg-white shadow-lg z-50">
-          <div className="flex flex-col items-center py-6 space-y-6">
-            <Link href="/" 
-                  className="p-3 rounded-lg hover:bg-gray-100 transition-colors">
-              <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div style={{ position: 'fixed', left: 0, top: 0, height: '100%', width: '64px', backgroundColor: 'white', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)', zIndex: 50 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '24px 0', gap: '24px' }}>
+            <button 
+              onClick={() => setCurrentPage('dashboard')}
+              style={{ padding: '12px', borderRadius: '8px', border: 'none', background: 'transparent', cursor: 'pointer' }}
+            >
+              <svg width="24" height="24" fill="none" stroke="#6b7280" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z" />
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5a2 2 0 012-2h4a2 2 0 012 2v2H8V5z" />
               </svg>
-            </Link>
+            </button>
             
-            <div className="p-3 rounded-lg bg-blue-100">
-              <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div style={{ padding: '12px', borderRadius: '8px', backgroundColor: '#dbeafe' }}>
+              <svg width="24" height="24" fill="none" stroke="#2563eb" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
               </svg>
             </div>
@@ -215,49 +216,59 @@ export default function Home() {
         </div>
 
         {/* AI Assistant Content */}
-        <div className="ml-16 p-8">
-          <div className="max-w-4xl mx-auto">
-            <h1 className="text-3xl font-bold text-gray-900 mb-8">AI Assistant</h1>
+        <div style={{ marginLeft: '64px', padding: '32px' }}>
+          <div style={{ maxWidth: '896px', margin: '0 auto' }}>
+            <h1 style={{ fontSize: '30px', fontWeight: 'bold', color: '#111827', marginBottom: '32px' }}>AI Assistant</h1>
             
             {/* Chat Interface */}
-            <div className="bg-white rounded-2xl shadow-lg h-[600px] flex flex-col">
+            <div style={{ backgroundColor: 'white', borderRadius: '16px', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)', height: '600px', display: 'flex', flexDirection: 'column' }}>
               {/* Messages */}
-              <div className="flex-1 p-6 overflow-y-auto space-y-4">
+              <div style={{ flex: 1, padding: '24px', overflowY: 'auto' }}>
                 {messages.map((message) => (
-                  <div key={message.id} className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
-                    <div className={`max-w-xs lg:max-w-md px-4 py-2 rounded-2xl ${
-                      message.sender === 'user' 
-                        ? 'bg-blue-600 text-white' 
-                        : 'bg-gray-100 text-gray-900'
-                    }`}>
-                      <p className="whitespace-pre-wrap">{message.text}</p>
+                  <div key={message.id} style={{ display: 'flex', marginBottom: '16px', justifyContent: message.sender === 'user' ? 'flex-end' : 'flex-start' }}>
+                    <div style={{
+                      maxWidth: '320px',
+                      padding: '8px 16px',
+                      borderRadius: '16px',
+                      backgroundColor: message.sender === 'user' ? '#2563eb' : '#f3f4f6',
+                      color: message.sender === 'user' ? 'white' : '#111827'
+                    }}>
+                      <p style={{ whiteSpace: 'pre-wrap', margin: 0 }}>{message.text}</p>
                     </div>
                   </div>
                 ))}
                 {chatLoading && (
-                  <div className="flex justify-start">
-                    <div className="bg-gray-100 text-gray-900 px-4 py-2 rounded-2xl">
-                      <p>Thinking...</p>
+                  <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
+                    <div style={{ backgroundColor: '#f3f4f6', color: '#111827', padding: '8px 16px', borderRadius: '16px' }}>
+                      <p style={{ margin: 0 }}>Thinking...</p>
                     </div>
                   </div>
                 )}
               </div>
               
               {/* Input */}
-              <div className="p-6 border-t border-gray-200">
-                <div className="flex space-x-4">
+              <div style={{ padding: '24px', borderTop: '1px solid #e5e7eb' }}>
+                <div style={{ display: 'flex', gap: '16px' }}>
                   <input
                     type="text"
                     value={inputMessage}
                     onChange={(e) => setInputMessage(e.target.value)}
                     onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
                     placeholder="Ask me anything about your fencing business..."
-                    className="flex-1 px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    style={{ flex: 1, padding: '12px 16px', border: '1px solid #d1d5db', borderRadius: '12px', outline: 'none' }}
                   />
                   <button
                     onClick={handleSendMessage}
                     disabled={!inputMessage.trim() || chatLoading}
-                    className="px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    style={{
+                      padding: '12px 24px',
+                      backgroundColor: '#2563eb',
+                      color: 'white',
+                      borderRadius: '12px',
+                      border: 'none',
+                      cursor: 'pointer',
+                      opacity: (!inputMessage.trim() || chatLoading) ? 0.5 : 1
+                    }}
                   >
                     Send
                   </button>
@@ -271,16 +282,16 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div style={{ minHeight: '100vh', backgroundColor: '#f9fafb' }}>
       <Head>
         <title>Dashboard - Fencing Executive Assistant</title>
       </Head>
       
       {/* Navigation Sidebar */}
-      <div className="fixed left-0 top-0 h-full w-16 bg-white shadow-lg z-50">
-        <div className="flex flex-col items-center py-6 space-y-6">
-          <div className="p-3 rounded-lg bg-blue-100">
-            <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <div style={{ position: 'fixed', left: 0, top: 0, height: '100%', width: '64px', backgroundColor: 'white', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)', zIndex: 50 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '24px 0', gap: '24px' }}>
+          <div style={{ padding: '12px', borderRadius: '8px', backgroundColor: '#dbeafe' }}>
+            <svg width="24" height="24" fill="none" stroke="#2563eb" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z" />
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5a2 2 0 012-2h4a2 2 0 012 2v2H8V5z" />
             </svg>
@@ -288,8 +299,9 @@ export default function Home() {
           
           <button 
             onClick={() => setCurrentPage('ai-assistant')}
-            className="p-3 rounded-lg hover:bg-gray-100 transition-colors">
-            <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            style={{ padding: '12px', borderRadius: '8px', border: 'none', background: 'transparent', cursor: 'pointer' }}
+          >
+            <svg width="24" height="24" fill="none" stroke="#6b7280" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
             </svg>
           </button>
@@ -297,23 +309,23 @@ export default function Home() {
       </div>
 
       {/* Main Content */}
-      <div className="ml-16 p-8">
-        <div className="max-w-6xl mx-auto">
-          <h1 className="text-3xl font-bold text-gray-900 mb-8">Dashboard</h1>
+      <div style={{ marginLeft: '64px', padding: '32px' }}>
+        <div style={{ maxWidth: '1152px', margin: '0 auto' }}>
+          <h1 style={{ fontSize: '30px', fontWeight: 'bold', color: '#111827', marginBottom: '32px' }}>Dashboard</h1>
           
           {/* Hero Metrics Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px' }}>
             {/* Active Quotes */}
-            <div className="bg-white rounded-2xl shadow-lg p-6 border-l-4 border-blue-500">
-              <div className="flex items-center justify-between">
+            <div style={{ backgroundColor: 'white', borderRadius: '16px', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)', padding: '24px', borderLeft: '4px solid #3b82f6' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div>
-                  <p className="text-4xl font-bold text-gray-900">
+                  <p style={{ fontSize: '36px', fontWeight: 'bold', color: '#111827', margin: 0 }}>
                     {metricsLoading ? '...' : formatNumber(activeQuotes)}
                   </p>
-                  <p className="text-sm text-gray-600 mt-1">Active Quotes</p>
+                  <p style={{ fontSize: '14px', color: '#6b7280', margin: '4px 0 0 0' }}>Active Quotes</p>
                 </div>
-                <div className="p-3 bg-blue-100 rounded-xl">
-                  <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div style={{ padding: '12px', backgroundColor: '#dbeafe', borderRadius: '12px' }}>
+                  <svg width="32" height="32" fill="none" stroke="#3b82f6" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                   </svg>
                 </div>
@@ -321,16 +333,16 @@ export default function Home() {
             </div>
 
             {/* Quotes Pending */}
-            <div className="bg-white rounded-2xl shadow-lg p-6 border-l-4 border-yellow-500">
-              <div className="flex items-center justify-between">
+            <div style={{ backgroundColor: 'white', borderRadius: '16px', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)', padding: '24px', borderLeft: '4px solid #eab308' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div>
-                  <p className="text-4xl font-bold text-gray-900">
+                  <p style={{ fontSize: '36px', fontWeight: 'bold', color: '#111827', margin: 0 }}>
                     {metricsLoading ? '...' : formatNumber(quotesPending)}
                   </p>
-                  <p className="text-sm text-gray-600 mt-1">Quotes Pending</p>
+                  <p style={{ fontSize: '14px', color: '#6b7280', margin: '4px 0 0 0' }}>Quotes Pending</p>
                 </div>
-                <div className="p-3 bg-yellow-100 rounded-xl">
-                  <svg className="w-8 h-8 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div style={{ padding: '12px', backgroundColor: '#fef3c7', borderRadius: '12px' }}>
+                  <svg width="32" height="32" fill="none" stroke="#eab308" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 </div>
@@ -338,16 +350,16 @@ export default function Home() {
             </div>
 
             {/* Won Invoices */}
-            <div className="bg-white rounded-2xl shadow-lg p-6 border-l-4 border-green-500">
-              <div className="flex items-center justify-between">
+            <div style={{ backgroundColor: 'white', borderRadius: '16px', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)', padding: '24px', borderLeft: '4px solid #22c55e' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div>
-                  <p className="text-4xl font-bold text-gray-900">
+                  <p style={{ fontSize: '36px', fontWeight: 'bold', color: '#111827', margin: 0 }}>
                     {metricsLoading ? '...' : formatNumber(wonInvoices)}
                   </p>
-                  <p className="text-sm text-gray-600 mt-1">Won Invoices</p>
+                  <p style={{ fontSize: '14px', color: '#6b7280', margin: '4px 0 0 0' }}>Won Invoices</p>
                 </div>
-                <div className="p-3 bg-green-100 rounded-xl">
-                  <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div style={{ padding: '12px', backgroundColor: '#dcfce7', borderRadius: '12px' }}>
+                  <svg width="32" height="32" fill="none" stroke="#22c55e" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 </div>
@@ -355,16 +367,16 @@ export default function Home() {
             </div>
 
             {/* Revenue */}
-            <div className="bg-white rounded-2xl shadow-lg p-6 border-l-4 border-purple-500">
-              <div className="flex items-center justify-between">
+            <div style={{ backgroundColor: 'white', borderRadius: '16px', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)', padding: '24px', borderLeft: '4px solid #a855f7' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div>
-                  <p className="text-4xl font-bold text-gray-900">
+                  <p style={{ fontSize: '36px', fontWeight: 'bold', color: '#111827', margin: 0 }}>
                     {metricsLoading ? '...' : formatCurrency(revenue)}
                   </p>
-                  <p className="text-sm text-gray-600 mt-1">Revenue</p>
+                  <p style={{ fontSize: '14px', color: '#6b7280', margin: '4px 0 0 0' }}>Revenue</p>
                 </div>
-                <div className="p-3 bg-purple-100 rounded-xl">
-                  <svg className="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div style={{ padding: '12px', backgroundColor: '#f3e8ff', borderRadius: '12px' }}>
+                  <svg width="32" height="32" fill="none" stroke="#a855f7" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
                   </svg>
                 </div>
@@ -374,8 +386,8 @@ export default function Home() {
 
           {/* Real-time Connection Status */}
           {webhookConnected && (
-            <div className="mt-6 flex items-center text-sm text-green-600">
-              <div className="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></div>
+            <div style={{ marginTop: '24px', display: 'flex', alignItems: 'center', fontSize: '14px', color: '#059669' }}>
+              <div style={{ width: '8px', height: '8px', backgroundColor: '#10b981', borderRadius: '50%', marginRight: '8px' }}></div>
               Real-time updates connected
             </div>
           )}
